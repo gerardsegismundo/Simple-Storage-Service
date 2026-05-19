@@ -40,24 +40,24 @@ A production-grade, secure, and highly available static content delivery platfor
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    S3 Static Website                         │
-│                     (Origin Bucket)                          │
-│                                                              │
+┌────────────────────────────────────────────────────────────┐
+│                    S3 Static Website                       │
+│                     (Origin Bucket)                        │
+│                                                            │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │ Versioning + MFA Delete Enabled                      │  │
 │  │ KMS Encryption (Bucket Keys)                         │  │
 │  │ Object Lock (Compliance Mode)                        │  │
 │  │ CloudTrail Logging Enabled                           │  │
 │  └──────────────────────────────────────────────────────┘  │
-│                                                              │
+│                                                            │
 │  ┌────────────────┬──────────────────────────────────────┐ │
 │  │ Access Points  │   Lifecycle Policies                 │ │
 │  │ - Account-wide │   - Intelligent-Tiering              │ │
 │  │ - Cross-region │   - Glacier Transition               │ │
 │  │                │   - Auto-deletion (Non-compliance)   │ │
 │  └────────────────┴──────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────┘
                            │
                            ├─→ S3 Events
                            │   (Object Created/Modified)
