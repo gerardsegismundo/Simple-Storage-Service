@@ -1,26 +1,163 @@
-name: AWS Test Connection
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["master"]
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, develop, master]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.5.0
+
 jobs:
-  aws-test:
+  build:
+    name: Build / Package
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Validate Terraform formatting
+        run: |
+          cd terraform
+          terraform fmt -check -recursive
+
+      - name: Initialize Terraform for validation
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform validate
+
+      - name: Package Lambda assets (if present)
+        run: |
+          if [ -d lambda ]; then
+            for fn in lambda/*; do
+              if [ -d "$fn" ] && [ -f "$fn/requirements.txt" ]; then
+                pkg=$(basename "$fn")
+                rm -rf "$fn/package"
+                mkdir -p "$fn/package"
+                pip install -r "$fn/requirements.txt" -t "$fn/package"
+                cd "$fn/package"
+                zip -r "../${pkg}-deployment-package.zip" .
+                cd ../
+                zip -g "${pkg}-deployment-package.zip" *.py || true
+              fi
+            done
+          else
+            echo "No lambda directory found, skipping packaging."
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            terraform/**/*.tf
+            lambda/**/*.zip
+
+  test:
+    name: Test / Validate
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform validate
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform validate
+
+      - name: Test summary
+        run: |
+          echo "No project-specific automated tests detected."
+          echo "Add tests under tests/ or update this workflow to include test execution."
+
+  deploy-dev:
+    name: Deploy to Development
+    needs: test
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::866934333672:role/segismundo-github-action-role
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
+      - name: Initialize Terraform backend (dev)
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" \
+            -backend-config="key=terraform/s3-service-dev.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Apply Terraform (dev)
+        run: |
+          cd terraform
+          terraform apply -auto-approve -var-file=dev.tfvars
+
+  approval-prod:
+    name: Production approval
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}/actions
+
+    steps:
+      - name: Await manual approval
+        run: echo "Production deployment is paused until approval is granted."
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: approval-prod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Initialize Terraform backend (prod)
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_PROD }}" \
+            -backend-config="key=terraform/s3-service-prod.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Apply Terraform (prod)
+        run: |
+          cd terraform
+          terraform apply -auto-approve -var-file=prod.tfvars
