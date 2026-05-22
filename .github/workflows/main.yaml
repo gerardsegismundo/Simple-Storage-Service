@@ -29,6 +29,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
       - name: Validate Terraform formatting
         run: |
           cd terraform
@@ -76,6 +81,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run project tests
+        run: |
+          pytest tests/ --maxfail=1 --disable-warnings -q
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -86,11 +105,6 @@ jobs:
           cd terraform
           terraform init -backend=false
           terraform validate
-
-      - name: Test summary
-        run: |
-          echo "No project-specific automated tests detected."
-          echo "Add tests under tests/ or update this workflow to include test execution."
 
   deploy-dev:
     name: Deploy to Development
