@@ -3,9 +3,19 @@ output "bucket_name" {
   value       = aws_s3_bucket.storage_bucket.id
 }
 
+output "bucket_name_generated" {
+  description = "Whether bucket name was auto-generated (empty var.bucket_name)."
+  value       = var.bucket_name == ""
+}
+
 output "replica_bucket_name" {
   description = "The name of the cross-region replication bucket (DR)."
   value       = aws_s3_bucket.replica_bucket.id
+}
+
+output "replica_bucket_generated" {
+  description = "Whether replica bucket name was auto-generated."
+  value       = var.replica_bucket_name == ""
 }
 
 output "region" {

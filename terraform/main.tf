@@ -24,6 +24,17 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 # ---------------------------------------------------------------------------
+# Generate dynamic names for resources to avoid conflicts
+# ---------------------------------------------------------------------------
+locals {
+  timestamp    = formatdate("YYYYMMDDhhmmss", timestamp())
+  bucket_name  = var.bucket_name != "" ? var.bucket_name : "segismundo-s3-origin-${local.timestamp}"
+  replica_name = var.replica_bucket_name != "" ? var.replica_bucket_name : "segismundo-s3-replica-${local.timestamp}"
+  lambda_name  = var.lambda_function_name != "" ? var.lambda_function_name : "segismundo-s3-processor"
+  kms_alias    = var.kms_key_alias != "" ? var.kms_key_alias : "alias/segismundo-s3-${local.timestamp}"
+}
+
+# ---------------------------------------------------------------------------
 # KMS Key for S3 encryption (bucket keys enabled in storage_bucket)
 # ---------------------------------------------------------------------------
 resource "aws_kms_key" "s3_encrypt" {
@@ -68,7 +79,7 @@ resource "aws_kms_key" "s3_encrypt" {
 }
 
 resource "aws_kms_alias" "s3_alias" {
-  name          = var.kms_key_alias
+  name          = local.kms_alias
   target_key_id = aws_kms_key.s3_encrypt.key_id
 }
 
@@ -77,7 +88,7 @@ resource "aws_kms_alias" "s3_alias" {
 # ---------------------------------------------------------------------------
 resource "aws_s3_bucket" "replica_bucket" {
   provider      = aws.secondary
-  bucket        = var.replica_bucket_name
+  bucket        = local.replica_name
   acl           = "private"
   force_destroy = false
 
@@ -108,7 +119,7 @@ resource "aws_s3_bucket" "replica_bucket" {
 # Primary storage bucket (origin / static website host)
 # ---------------------------------------------------------------------------
 resource "aws_s3_bucket" "storage_bucket" {
-  bucket = var.bucket_name
+  bucket = local.bucket_name
   acl    = "private"
 
   versioning {
@@ -444,7 +455,7 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_lambda_function" "s3_event_processor" {
   filename         = data.archive_file.lambda_zip.output_path
-  function_name    = var.lambda_function_name
+  function_name    = local.lambda_name
   role             = aws_iam_role.lambda_execution_role.arn
   handler          = "s3_event_processor.lambda_handler"
   runtime          = "python3.11"

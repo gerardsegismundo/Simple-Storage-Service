@@ -11,27 +11,27 @@ variable "replica_region" {
 }
 
 variable "bucket_name" {
-  description = "Primary S3 bucket name for the static website and content."
+  description = "Primary S3 bucket name. If empty, auto-generates: segismundo-s3-origin-{timestamp}"
   type        = string
-  default     = "simple-storage-service-bucket"
+  default     = ""
 }
 
 variable "replica_bucket_name" {
-  description = "Cross-region replication bucket name."
+  description = "Cross-region replication bucket name. If empty, auto-generates: segismundo-s3-replica-{timestamp}"
   type        = string
-  default     = "simple-storage-service-replica-bucket"
+  default     = ""
 }
 
 variable "lambda_function_name" {
-  description = "Name of the Lambda function for S3 upload events."
+  description = "Name of the Lambda function for S3 upload events. If empty, uses: segismundo-s3-processor"
   type        = string
-  default     = "simple-storage-service-processor"
+  default     = ""
 }
 
 variable "kms_key_alias" {
-  description = "KMS alias used for S3 bucket encryption."
+  description = "KMS alias used for S3 bucket encryption. If empty, auto-generates: alias/segismundo-s3-{timestamp}"
   type        = string
-  default     = "alias/simple-storage-service-kms"
+  default     = ""
 }
 
 variable "mfa_serial_number" {
