@@ -1,0 +1,6 @@
+aws_region            = "us-east-1"
+replica_region        = "us-west-2"
+bucket_name           = "simple-storage-service-prod-us-east-1"
+replica_bucket_name   = "simple-storage-service-prod-us-west-2"
+lambda_function_name  = "simple-storage-service-processor-prod"
+kms_key_alias         = "alias/simple-storage-service-prod-kms"

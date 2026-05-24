@@ -1,4 +1,7 @@
 .terraform/
 .terraform.lock.hcl
 **/*.tfstate*
-*.tfvars
+
+# Allow environment-specific tfvars for CI/CD
+!dev.tfvars
+!prod.tfvars
