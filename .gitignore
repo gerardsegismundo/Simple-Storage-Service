@@ -1,0 +1,13 @@
+# Terraform local state and plugin cache
+terraform/.terraform/
+
+# Terraform lock file should be committed
+# terraform/.terraform.lock.hcl
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor files
+*.swp
+*.swo

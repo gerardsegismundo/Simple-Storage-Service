@@ -1,0 +1,7 @@
+aws_region = "us-east-1"
+replica_region = "us-west-2"
+bucket_name = "simple-storage-service-bucket"
+replica_bucket_name = "simple-storage-service-replica-bucket"
+lambda_function_name = "simple-storage-service-processor"
+dynamodb_lock_table = "simple-storage-service-lock-table"
+kms_key_alias = "alias/simple-storage-service-kms"
