@@ -88,14 +88,25 @@
     },
 
     {
-      "Sid": "AllowPassRole",
+      "Sid": "IAMRolesAndPolicies",
       "Effect": "Allow",
       "Action": [
-        "iam:PassRole"
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PassRole",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicy",
+        "iam:AttachUserPolicy",
+        "iam:DetachUserPolicy"
       ],
       "Resource": [
-        "PASS_ROLE_ARN"
+        "arn:aws:iam::866934333672:role/s3-*",
+        "arn:aws:iam::866934333672:policy/*"
       ]
-    }
+    },
   ]
 }
