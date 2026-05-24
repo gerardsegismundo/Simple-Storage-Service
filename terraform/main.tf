@@ -35,8 +35,8 @@ resource "aws_kms_key" "s3_encrypt" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "Allow administration of the key"
-        Effect    = "Allow"
+        Sid    = "Allow administration of the key"
+        Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
@@ -153,8 +153,8 @@ resource "aws_s3_bucket" "storage_bucket" {
     object_lock_enabled = "Enabled"
     rule {
       default_retention {
-        mode  = "GOVERNANCE"
-        days  = 30
+        mode = "GOVERNANCE"
+        days = 30
       }
     }
   }
@@ -275,8 +275,8 @@ resource "aws_s3_bucket_policy" "website_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowAclACL"
-        Effect    = "Allow"
+        Sid    = "AllowAclACL"
+        Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
