@@ -1,5 +1,9 @@
 # Terraform local state and plugin cache
 terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfstate
+terraform/*.tfstate.backup
 
 # Terraform lock file should be committed
 # terraform/.terraform.lock.hcl
