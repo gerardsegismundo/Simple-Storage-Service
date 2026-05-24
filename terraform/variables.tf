@@ -28,12 +28,6 @@ variable "lambda_function_name" {
   default     = "simple-storage-service-processor"
 }
 
-variable "dynamodb_lock_table" {
-  description = "DynamoDB table name used for Terraform state locking."
-  type        = string
-  default     = "simple-storage-service-lock-table"
-}
-
 variable "kms_key_alias" {
   description = "KMS alias used for S3 bucket encryption."
   type        = string

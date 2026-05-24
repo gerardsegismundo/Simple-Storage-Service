@@ -60,22 +60,6 @@
     },
 
     {
-      "Sid": "DynamoDBLockTable",
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:PutItem",
-        "dynamodb:GetItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:DescribeTable",
-        "dynamodb:Query",
-        "dynamodb:UpdateItem"
-      ],
-      "Resource": [
-        "DDB_TABLE_ARN"
-      ]
-    },
-
-    {
       "Sid": "CloudWatchLogs",
       "Effect": "Allow",
       "Action": [

@@ -13,11 +13,6 @@ output "kms_key_arn" {
   value       = aws_kms_key.s3_encrypt.arn
 }
 
-output "dynamodb_lock_table" {
-  description = "DynamoDB table used for Terraform state locking."
-  value       = aws_dynamodb_table.terraform_lock.name
-}
-
 output "lambda_role_arn" {
   description = "IAM role ARN used by the Lambda processor."
   value       = aws_iam_role.lambda_execution_role.arn

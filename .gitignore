@@ -4,6 +4,9 @@ terraform/.terraform/
 # Terraform lock file should be committed
 # terraform/.terraform.lock.hcl
 
+# Generated Lambda package
+lambda/*.zip
+
 # Python cache
 __pycache__/
 *.pyc
