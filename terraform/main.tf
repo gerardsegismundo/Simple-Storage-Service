@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -9,6 +10,10 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -16,134 +21,98 @@ provider "aws" {
   region = var.aws_region
 }
 
-provider "aws" {
-  alias  = "secondary"
-  region = var.replica_region
-}
-
 data "aws_caller_identity" "current" {}
 
-# ---------------------------------------------------------------------------
-# Generate dynamic names for resources to avoid conflicts
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------
+# Naming
+# ------------------------------------------------------------
 locals {
   timestamp    = formatdate("YYYYMMDDhhmmss", timestamp())
-  bucket_name  = var.bucket_name != "" ? var.bucket_name : "segismundo-s3-origin-${local.timestamp}"
-  replica_name = var.replica_bucket_name != "" ? var.replica_bucket_name : "segismundo-s3-replica-${local.timestamp}"
-  lambda_name  = var.lambda_function_name != "" ? var.lambda_function_name : "segismundo-s3-processor"
-  kms_alias    = var.kms_key_alias != "" ? var.kms_key_alias : "alias/segismundo-s3-${local.timestamp}"
+  bucket_name  = "segismundo-s3-origin-${local.timestamp}"
+  replica_name = "segismundo-s3-replica-${local.timestamp}"
+  lambda_name  = "s3-event-processor"
 }
 
-# ---------------------------------------------------------------------------
-# KMS Key for S3 encryption (bucket keys enabled in storage_bucket)
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------
+# KMS Key
+# ------------------------------------------------------------
 resource "aws_kms_key" "s3_encrypt" {
-  description             = "KMS key for S3 encryption and bucket key use."
-  deletion_window_in_days = 30
-  enable_key_rotation     = true
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "Allow administration of the key"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action   = "kms:*"
-        Resource = "*"
-      },
-      {
-        Sid    = "Allow use of the key for S3 encryption"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.s3_access_point_access_principal
-        }
-        Action = [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:GenerateDataKey",
-          "kms:ReEncrypt*",
-          "kms:DescribeKey"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "kms:ViaService" = "s3.${var.aws_region}.amazonaws.com"
-          }
-        }
-      }
-    ]
-  })
+  description         = "S3 encryption key"
+  enable_key_rotation = true
 }
 
 resource "aws_kms_alias" "s3_alias" {
-  name          = local.kms_alias
+  name          = "alias/s3-key-${local.timestamp}"
   target_key_id = aws_kms_key.s3_encrypt.key_id
 }
 
-# ---------------------------------------------------------------------------
-# Replica bucket (destination for cross-region replication)
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------
+# Buckets
+# ------------------------------------------------------------
+resource "aws_s3_bucket" "storage_bucket" {
+  bucket = local.bucket_name
+}
+
 resource "aws_s3_bucket" "replica_bucket" {
-  provider      = aws.secondary
-  bucket        = local.replica_name
-  acl           = "private"
-  force_destroy = false
+  bucket = local.replica_name
+}
 
-  versioning {
-    enabled = true
+# ------------------------------------------------------------
+# Versioning (SAFE)
+# ------------------------------------------------------------
+resource "aws_s3_bucket_versioning" "storage_versioning" {
+  bucket = aws_s3_bucket.storage_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
+}
 
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
+resource "aws_s3_bucket_versioning" "replica_versioning" {
+  bucket = aws_s3_bucket.replica_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
+}
 
-  lifecycle_rule {
-    enabled = true
-    id      = "replica-archive"
+# ------------------------------------------------------------
+# Encryption
+# ------------------------------------------------------------
+resource "aws_s3_bucket_server_side_encryption_configuration" "storage_encryption" {
+  bucket = aws_s3_bucket.storage_bucket.id
 
-    transition {
-      days          = 30
-      storage_class = "GLACIER"
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_encrypt.arn
     }
   }
 }
 
-# ---------------------------------------------------------------------------
-# Primary storage bucket (origin / static website host)
-# ---------------------------------------------------------------------------
-resource "aws_s3_bucket" "storage_bucket" {
-  bucket = local.bucket_name
-  acl    = "private"
+resource "aws_s3_bucket_server_side_encryption_configuration" "replica_encryption" {
+  bucket = aws_s3_bucket.replica_bucket.id
 
-  versioning {
-    enabled = true
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm     = "aws:kms"
-        kms_master_key_id = aws_kms_key.s3_encrypt.arn
-      }
-      bucket_key_enabled = true
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
+}
 
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
-  }
+# ------------------------------------------------------------
+# Lifecycle
+# ------------------------------------------------------------
+resource "aws_s3_bucket_lifecycle_configuration" "storage_lifecycle" {
+  bucket = aws_s3_bucket.storage_bucket.id
 
-  lifecycle_rule {
-    id      = "archive-lifecycle"
-    enabled = true
+  rule {
+    id     = "main-lifecycle"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     transition {
       days          = 30
@@ -154,362 +123,153 @@ resource "aws_s3_bucket" "storage_bucket" {
       days          = 90
       storage_class = "GLACIER"
     }
-
-    noncurrent_version_expiration {
-      days = 90
-    }
-  }
-
-  object_lock_configuration {
-    object_lock_enabled = "Enabled"
-    rule {
-      default_retention {
-        mode = "GOVERNANCE"
-        days = 30
-      }
-    }
-  }
-
-  replication_configuration {
-    role = aws_iam_role.replication_role.arn
-
-    rules {
-      id     = "s3-replication-rule"
-      status = "Enabled"
-
-      destination {
-        bucket        = aws_s3_bucket.replica_bucket.arn
-        storage_class = "STANDARD"
-      }
-    }
   }
 }
 
-# ---------------------------------------------------------------------------
-# Supporting bucket configurations (logging, cors, access points, ownership)
-# These are top-level resources, NOT nested inside aws_s3_bucket.
-# ---------------------------------------------------------------------------
-resource "aws_s3_bucket_logging" "storage_bucket_access_logs" {
-  bucket        = aws_s3_bucket.storage_bucket.id
-  target_bucket = aws_s3_bucket.audit_logs.id
-  target_prefix = "s3-origin-logs/"
-}
-
-resource "aws_s3_bucket_cors_configuration" "storage_bucket_cors" {
+# ------------------------------------------------------------
+# Static Website Hosting
+# ------------------------------------------------------------
+resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.storage_bucket.id
 
-  cors_rule {
-    allowed_methods = ["GET", "PUT", "POST", "HEAD", "DELETE"]
-    allowed_origins = ["*"]
-    allowed_headers = ["*"]
-    expose_headers  = ["ETag"]
-    max_age_seconds = 3600
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
   }
 }
 
-resource "aws_s3_access_point" "upload_access_point" {
-  bucket = aws_s3_bucket.storage_bucket.id
-  name   = "simple-storage-service-uploads"
+# ------------------------------------------------------------
+# Website Files (public access for static hosting)
+# Note: These objects need public read access, so we use AES256
+# for website files while keeping KMS for other objects
+# ------------------------------------------------------------
+resource "aws_s3_object" "index_html" {
+  bucket       = aws_s3_bucket.storage_bucket.id
+  key          = "index.html"
+  source       = "${path.module}/../index.html"
+  content_type = "text/html"
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowUploads"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.s3_access_point_access_principal
-        }
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:DeleteObject"
-        ]
-        Resource = "${aws_s3_bucket.storage_bucket.arn}/*"
-        Condition = {
-          StringEquals = {
-            "s3:prefix" = ["uploads/"]
-          }
-        }
-      }
-    ]
-  })
+  etag = filemd5("${path.module}/../index.html")
 }
 
-resource "aws_s3_access_point" "readonly_access_point" {
-  bucket = aws_s3_bucket.storage_bucket.id
-  name   = "simple-storage-service-readonly"
+resource "aws_s3_object" "error_html" {
+  bucket       = aws_s3_bucket.storage_bucket.id
+  key          = "error.html"
+  source       = "${path.module}/../error.html"
+  content_type = "text/html"
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowReadOnly"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.s3_access_point_access_principal
-        }
-        Action = [
-          "s3:GetObject",
-          "s3:GetObjectVersion"
-        ]
-        Resource = "${aws_s3_bucket.storage_bucket.arn}/*"
-      }
-    ]
-  })
+  etag = filemd5("${path.module}/../error.html")
 }
 
-resource "aws_s3_bucket_ownership_controls" "replica_ownership" {
-  bucket = aws_s3_bucket.replica_bucket.id
-
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-# ---------------------------------------------------------------------------
-# Public access block + bucket policy
-# ---------------------------------------------------------------------------
-resource "aws_s3_bucket_public_access_block" "storage_bucket_public_access" {
-  bucket = aws_s3_bucket.storage_bucket.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_policy" "website_policy" {
-  bucket = aws_s3_bucket.storage_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowAclACL"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action = [
-          "s3:GetBucketAcl",
-          "s3:PutBucketAcl"
-        ]
-        Resource = [
-          "${aws_s3_bucket.storage_bucket.arn}",
-          "${aws_s3_bucket.storage_bucket.arn}/*"
-        ]
-      },
-      {
-        Sid       = "DenyNonEncryptedOutbound"
-        Effect    = "Deny"
-        Principal = "*"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject"
-        ]
-        Resource = "${aws_s3_bucket.storage_bucket.arn}/*"
-        Condition = {
-          Bool = {
-            "aws:SecureTransport" = "false"
-          }
-        }
-      }
-    ]
-  })
-}
-
-# ---------------------------------------------------------------------------
-# IAM roles and policies
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------
+# IAM Role for Replication
+# ------------------------------------------------------------
 resource "aws_iam_role" "replication_role" {
-  name = "s3-replication-role"
+  name = "s3-replication-role-clean"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "s3.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "s3.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
   })
 }
 
 resource "aws_iam_role_policy" "replication_policy" {
-  name = "s3-replication-policy"
   role = aws_iam_role.replication_role.id
 
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow"
+        Effect = "Allow",
         Action = [
           "s3:GetObjectVersion",
-          "s3:GetObjectVersionAcl",
-          "s3:GetObjectVersionTagging",
           "s3:GetObjectVersionForReplication",
-          "s3:GetObjectLegalHold",
-          "s3:GetObjectRetention"
-        ]
-        Resource = [
-          "${aws_s3_bucket.storage_bucket.arn}/*"
-        ]
+          "s3:ReplicateObject",
+          "s3:ReplicateDelete"
+        ],
+        Resource = "${aws_s3_bucket.storage_bucket.arn}/*"
       },
       {
-        Effect = "Allow"
+        Effect = "Allow",
         Action = [
           "s3:ReplicateObject",
-          "s3:ReplicateDelete",
-          "s3:ReplicateTags",
-          "s3:PutObject",
-          "s3:PutObjectAcl",
-          "s3:PutObjectVersionAcl",
-          "s3:PutObjectTagging"
-        ]
-        Resource = [
-          "${aws_s3_bucket.replica_bucket.arn}/*"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt",
-          "kms:GenerateDataKey"
-        ]
-        Resource = [
-          aws_kms_key.s3_encrypt.arn
-        ]
+          "s3:ReplicateDelete"
+        ],
+        Resource = "${aws_s3_bucket.replica_bucket.arn}/*"
       }
     ]
   })
 }
 
-resource "aws_iam_role" "lambda_execution_role" {
-  name = "s3-event-lambda-execution-role"
+# ------------------------------------------------------------
+# Replication
+# ------------------------------------------------------------
+resource "aws_s3_bucket_replication_configuration" "replication" {
+  depends_on = [
+    aws_s3_bucket_versioning.storage_versioning,
+    aws_s3_bucket_versioning.replica_versioning
+  ]
+
+  role   = aws_iam_role.replication_role.arn
+  bucket = aws_s3_bucket.storage_bucket.id
+
+  rule {
+    id     = "replication-rule"
+    status = "Enabled"
+
+    destination {
+      bucket = aws_s3_bucket.replica_bucket.arn
+    }
+  }
+}
+
+# ------------------------------------------------------------
+# Lambda (kept simple)
+# ------------------------------------------------------------
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda-s3-role-clean"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = { Service = "lambda.amazonaws.com" },
+      Action = "sts:AssumeRole"
+    }]
   })
 }
 
-resource "aws_iam_policy" "lambda_policy" {
-  name = "s3-event-lambda-policy"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "LambdaS3Access"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          aws_s3_bucket.storage_bucket.arn,
-          "${aws_s3_bucket.storage_bucket.arn}/*"
-        ]
-      },
-      {
-        Sid    = "LambdaLogging"
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/*"
-      }
-    ]
-  })
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_execution_attachment" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_policy.arn
-}
-
-# ---------------------------------------------------------------------------
-# Lambda function package + deployment
-# ---------------------------------------------------------------------------
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = "../lambda/s3_event_processor.py"
   output_path = "../lambda/s3_event_processor.zip"
 }
 
-resource "aws_lambda_function" "s3_event_processor" {
-  filename         = data.archive_file.lambda_zip.output_path
+resource "aws_lambda_function" "processor" {
   function_name    = local.lambda_name
-  role             = aws_iam_role.lambda_execution_role.arn
-  handler          = "s3_event_processor.lambda_handler"
+  role             = aws_iam_role.lambda_role.arn
   runtime          = "python3.11"
+  handler          = "s3_event_processor.lambda_handler"
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  publish          = true
 
   environment {
     variables = {
-      BUCKET_NAME = aws_s3_bucket.storage_bucket.id
+      BUCKET = aws_s3_bucket.storage_bucket.id
     }
-  }
-}
-
-resource "aws_lambda_permission" "allow_bucket_invoke" {
-  statement_id  = "AllowS3Invoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.s3_event_processor.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.storage_bucket.arn
-}
-
-resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = aws_s3_bucket.storage_bucket.id
-
-  lambda_function {
-    lambda_function_arn = aws_lambda_function.s3_event_processor.arn
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "uploads/"
-    filter_suffix       = ".jpg"
-  }
-
-  depends_on = [aws_lambda_permission.allow_bucket_invoke]
-}
-
-# ---------------------------------------------------------------------------
-# MFA Delete automation (null_resource + scripts/mfa-setup.sh)
-# ---------------------------------------------------------------------------
-resource "null_resource" "mfa_delete_setup" {
-  triggers = {
-    bucket_name             = aws_s3_bucket.storage_bucket.id
-    mfa_delete_note_version = "1"
-  }
-
-  provisioner "local-exec" {
-    command = <<EOT
-if [ -z "${var.mfa_serial_number}" ] || [ -z "${var.mfa_token_code}" ]; then
-  echo "SKIPPING: MFA Delete requires an MFA session token."
-  echo "Set TF_VAR_mfa_serial_number and TF_VAR_mfa_token_code to enable."
-  exit 0
-fi
-aws s3api put-bucket-versioning \
-  --bucket "${aws_s3_bucket.storage_bucket.id}" \
-  --versioning-configuration Status=Enabled,MFADelete=Enabled \
-  --mfa "${var.mfa_serial_number} ${var.mfa_token_code}"
-EOT
   }
 }

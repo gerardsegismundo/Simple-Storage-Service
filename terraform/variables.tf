@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "replica_region" {
-  description = "AWS region for cross-region replication destination."
+  description = "AWS region for cross-region replication destination (must be us-east-1 due to IAM restrictions)."
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-1"
 }
 
 variable "bucket_name" {
