@@ -1,10 +1,10 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - Multi-Environment Promotion
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, staging, main, master]
   pull_request:
-    branches: [develop]
+    branches: [develop, staging, main, master]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,9 @@ env:
   TF_VERSION: 1.5.0
 
 jobs:
+  # ============================================================
+  # Stage 1: Build & Package (runs on all branches)
+  # ============================================================
   build:
     name: Build / Package
     runs-on: ubuntu-latest
@@ -45,6 +48,9 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+  # ============================================================
+  # Stage 2: Test & Validate (runs on all branches)
+  # ============================================================
   test:
     name: Test / Validate
     needs: build
@@ -79,11 +85,16 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+  # ============================================================
+  # Stage 3: Deploy to Development (develop branch only)
+  # ============================================================
   deploy-dev:
     name: Deploy to Development
     needs: test
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment:
+      name: development
 
     steps:
       - name: Checkout repository
@@ -106,29 +117,83 @@ jobs:
           cd terraform
           terraform init -backend=false
 
-      - name: Apply Terraform (dev)
+      - name: Deploy to Development
         run: |
           cd terraform
+          terraform plan -var-file=dev.tfvars
           terraform apply -auto-approve -var-file=dev.tfvars
 
-  approval-prod:
-    name: Production approval
+  # ============================================================
+  # Stage 4: Deploy to Staging (staging branch only)
+  # ============================================================
+  deploy-staging:
+    name: Deploy to Staging
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Initialize Terraform
+        run: |
+          cd terraform
+          terraform init -backend=false
+
+      - name: Deploy to Staging
+        run: |
+          cd terraform
+          terraform plan -var-file=prod.tfvars
+          terraform apply -auto-approve -var-file=prod.tfvars
+
+  # ============================================================
+  # Stage 5: Production Approval (main/master branch only)
+  # ============================================================
+  approval-prod:
+    name: Production Approval
+    needs: test
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      # Approval required before proceeding
+    outputs:
+      approved: ${{ steps.approve.outputs.approved }}
+
+    steps:
+      - name: Await Manual Approval
+        id: approve
+        run: |
+          echo "⏸️  Production deployment is awaiting manual approval..."
+          echo "approved=true" >> $GITHUB_OUTPUT
+
+  # ============================================================
+  # Stage 6: Deploy to Production (main/master with approval)
+  # ============================================================
+  deploy-prod:
+    name: Deploy to Production
+    needs: approval-prod
+    if: needs.approval-prod.outputs.approved == 'true'
     runs-on: ubuntu-latest
     environment:
       name: production
 
     steps:
-      - name: Await manual approval
-        run: echo "Production deployment is paused until approval is granted."
-
-  deploy-prod:
-    name: Deploy to Production
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -149,7 +214,8 @@ jobs:
           cd terraform
           terraform init -backend=false
 
-      - name: Apply Terraform (prod)
+      - name: Deploy to Production
         run: |
           cd terraform
+          terraform plan -var-file=prod.tfvars
           terraform apply -auto-approve -var-file=prod.tfvars
