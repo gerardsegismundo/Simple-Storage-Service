@@ -2,10 +2,9 @@ name: CI/CD Pipeline - Multi-Environment Promotion
 
 on:
   push:
-    branches: [develop, staging, main, master]
+    branches: [develop, staging, main]
   pull_request:
-    branches: [develop, staging, main, master]
-  workflow_dispatch:
+    branches: [develop, staging, main]
 
 permissions:
   id-token: write
@@ -17,7 +16,7 @@ env:
 
 jobs:
   # ============================================================
-  # Stage 1: Build & Package (runs on all branches)
+  # Stage 1: Build / Package
   # ============================================================
   build:
     name: Build / Package
@@ -33,7 +32,7 @@ jobs:
           python-version: '3.11'
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
@@ -42,14 +41,8 @@ jobs:
           cd terraform
           terraform fmt -check -recursive
 
-      - name: Initialize Terraform for validation
-        run: |
-          cd terraform
-          terraform init -backend=false
-          terraform validate
-
   # ============================================================
-  # Stage 2: Test & Validate (runs on all branches)
+  # Stage 2: Test / Validation
   # ============================================================
   test:
     name: Test / Validate
@@ -74,23 +67,35 @@ jobs:
         run: |
           pytest tests/ --maxfail=1 --disable-warnings -q
 
+  # ============================================================
+  # Stage 3: Terraform Validation
+  # ============================================================
+  terraform-validate:
+    name: Terraform Validation
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Terraform validate
+      - name: Initialize Terraform for validation
         run: |
           cd terraform
           terraform init -backend=false
           terraform validate
 
   # ============================================================
-  # Stage 3: Deploy to Development (develop branch only)
+  # Stage 4: Deploy to Development
   # ============================================================
   deploy-dev:
     name: Deploy to Development
-    needs: test
+    needs: terraform-validate
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
@@ -108,27 +113,31 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform for deployment
         run: |
           cd terraform
-          terraform init -backend=false
+          terraform init
 
-      - name: Deploy to Development
+      - name: Plan Development deployment
         run: |
           cd terraform
           terraform plan -var-file=dev.tfvars
+
+      - name: Apply Development deployment
+        run: |
+          cd terraform
           terraform apply -auto-approve -var-file=dev.tfvars
 
   # ============================================================
-  # Stage 4: Deploy to Staging (staging branch only)
+  # Stage 5: Deploy to Staging
   # ============================================================
   deploy-staging:
     name: Deploy to Staging
-    needs: test
+    needs: terraform-validate
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
@@ -146,49 +155,32 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform for deployment
         run: |
           cd terraform
-          terraform init -backend=false
+          terraform init
 
-      - name: Deploy to Staging
+      - name: Plan Staging deployment
         run: |
           cd terraform
-          terraform plan -var-file=prod.tfvars
-          terraform apply -auto-approve -var-file=prod.tfvars
+          terraform plan -var-file=staging.tfvars
 
-  # ============================================================
-  # Stage 5: Production Approval (main/master branch only)
-  # ============================================================
-  approval-prod:
-    name: Production Approval
-    needs: test
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      # Approval required before proceeding
-    outputs:
-      approved: ${{ steps.approve.outputs.approved }}
-
-    steps:
-      - name: Await Manual Approval
-        id: approve
+      - name: Apply Staging deployment
         run: |
-          echo "⏸️  Production deployment is awaiting manual approval..."
-          echo "approved=true" >> $GITHUB_OUTPUT
+          cd terraform
+          terraform apply -auto-approve -var-file=staging.tfvars
 
   # ============================================================
-  # Stage 6: Deploy to Production (main/master with approval)
+  # Stage 6: Deploy to Production
   # ============================================================
   deploy-prod:
     name: Deploy to Production
-    needs: approval-prod
-    if: needs.approval-prod.outputs.approved == 'true'
+    needs: terraform-validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -205,17 +197,21 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform for deployment
         run: |
           cd terraform
-          terraform init -backend=false
+          terraform init
 
-      - name: Deploy to Production
+      - name: Plan Production deployment
         run: |
           cd terraform
           terraform plan -var-file=prod.tfvars
+
+      - name: Apply Production deployment
+        run: |
+          cd terraform
           terraform apply -auto-approve -var-file=prod.tfvars
