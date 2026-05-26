@@ -31,7 +31,6 @@ variable "project_name" {
 
 locals {
   suffix             = formatdate("YYYYMMDDhhmmss", timestamp())
-  audit_bucket_name  = "${var.project_name}-audit-${local.suffix}"
   origin_bucket_name = "${var.project_name}-origin-${local.suffix}"
 }
 
@@ -104,72 +103,41 @@ resource "aws_s3_bucket_public_access_block" "origin" {
 }
 
 # ------------------------------------------------------------
-# S3 Audit Bucket for CloudTrail
+# CloudWatch monitoring for Lambda
 # ------------------------------------------------------------
-resource "aws_s3_bucket" "audit" {
-  bucket = local.audit_bucket_name
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${aws_lambda_function.s3_processor.function_name}"
+  retention_in_days = 14
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "audit" {
-  bucket = aws_s3_bucket.audit.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
+resource "aws_cloudwatch_metric_filter" "lambda_errors" {
+  name           = "${var.project_name}-lambda-errors"
+  log_group_name = aws_cloudwatch_log_group.lambda.name
+  pattern        = "ERROR"
+
+  metric_transformation {
+    name      = "S3ProcessorErrors"
+    namespace = "SimpleStorage"
+    value     = "1"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "audit" {
-  bucket = aws_s3_bucket.audit.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+resource "aws_sns_topic" "alerts" {
+  name = "${var.project_name}-alerts"
 }
 
-# ------------------------------------------------------------
-# CloudTrail logging to audit bucket
-# ------------------------------------------------------------
-resource "aws_cloudtrail" "main" {
-  name                          = "${var.project_name}-trail-${local.suffix}"
-  s3_bucket_name                = aws_s3_bucket.audit.id
-  include_global_service_events = true
-  is_multi_region_trail         = false
-  enable_logging                = true
-}
-
-data "aws_iam_policy_document" "cloudtrail_assume_role" {
-  statement {
-    sid    = "AWSCloudTrailReadWrite"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
-    }
-
-    actions = [
-      "s3:GetBucketAcl",
-      "s3:PutObject"
-    ]
-
-    resources = [
-      aws_s3_bucket.audit.arn,
-      "${aws_s3_bucket.audit.arn}/*"
-    ]
-
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "audit" {
-  bucket = aws_s3_bucket.audit.id
-  policy = data.aws_iam_policy_document.cloudtrail_assume_role.json
+resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
+  alarm_name          = "${var.project_name}-lambda-error-alarm"
+  alarm_description   = "Alarm when Lambda logs contain ERROR"
+  metric_name         = "S3ProcessorErrors"
+  namespace           = "SimpleStorage"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
 }
 
 # ------------------------------------------------------------
@@ -239,13 +207,7 @@ output "origin_bucket_name" {
   value = aws_s3_bucket.origin.id
 }
 
-output "audit_bucket_name" {
-  value = aws_s3_bucket.audit.id
-}
-
-output "cloudtrail_name" {
-  value = aws_cloudtrail.main.name
-}
+ 
 
 output "lambda_function_name" {
   value = aws_lambda_function.s3_processor.function_name
