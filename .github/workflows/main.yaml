@@ -45,25 +45,6 @@ jobs:
           terraform init -backend=false
           terraform validate
 
-      - name: Package Lambda assets (if present)
-        run: |
-          if [ -d lambda ]; then
-            for fn in lambda/*; do
-              if [ -d "$fn" ] && [ -f "$fn/requirements.txt" ]; then
-                pkg=$(basename "$fn")
-                rm -rf "$fn/package"
-                mkdir -p "$fn/package"
-                pip install -r "$fn/requirements.txt" -t "$fn/package"
-                cd "$fn/package"
-                zip -r "../${pkg}-deployment-package.zip" .
-                cd ../
-                zip -g "${pkg}-deployment-package.zip" *.py || true
-              fi
-            done
-          else
-            echo "No lambda directory found, skipping packaging."
-          fi
-
   test:
     name: Test / Validate
     needs: build
@@ -120,13 +101,10 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Initialize Terraform backend (dev)
+      - name: Initialize Terraform
         run: |
           cd terraform
-          terraform init \
-            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" \
-            -backend-config="key=terraform/s3-service-dev.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}"
+          terraform init -backend=false
 
       - name: Apply Terraform (dev)
         run: |
@@ -140,7 +118,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://github.com/${{ github.repository }}/actions
 
     steps:
       - name: Await manual approval
@@ -167,13 +144,10 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Initialize Terraform backend (prod)
+      - name: Initialize Terraform
         run: |
           cd terraform
-          terraform init \
-            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_PROD }}" \
-            -backend-config="key=terraform/s3-service-prod.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}"
+          terraform init -backend=false
 
       - name: Apply Terraform (prod)
         run: |

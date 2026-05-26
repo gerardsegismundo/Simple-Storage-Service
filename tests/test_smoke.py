@@ -5,8 +5,6 @@ from pathlib import Path
 
 
 class TestProjectStructure:
-    """Test that all expected project files and directories exist."""
-
     def test_terraform_directory_exists(self):
         assert os.path.isdir("terraform"), "terraform/ directory should exist"
 
@@ -18,16 +16,8 @@ class TestProjectStructure:
 
 
 class TestTerraformConfiguration:
-    """Test Terraform configuration validity."""
-
     def test_terraform_main_exists(self):
         assert os.path.isfile("terraform/main.tf"), "terraform/main.tf should exist"
-
-    def test_terraform_variables_exists(self):
-        assert os.path.isfile("terraform/variables.tf"), "terraform/variables.tf should exist"
-
-    def test_terraform_outputs_exists(self):
-        assert os.path.isfile("terraform/outputs.tf"), "terraform/outputs.tf should exist"
 
     def test_terraform_main_not_empty(self):
         main_path = "terraform/main.tf"
@@ -35,10 +25,24 @@ class TestTerraformConfiguration:
             content = Path(main_path).read_text()
             assert len(content) > 0, "main.tf should not be empty"
 
+    def test_terraform_has_origin_bucket(self):
+        content = Path("terraform/main.tf").read_text()
+        assert "aws_s3_bucket.origin" in content, "Should define origin S3 bucket"
+        assert "aws_s3_bucket_versioning" in content, "Should have versioning config"
+        assert "AES256" in content, "Should use AES256 encryption"
+
+    def test_terraform_has_audit_bucket(self):
+        content = Path("terraform/main.tf").read_text()
+        assert "aws_s3_bucket.audit" in content, "Should define audit S3 bucket"
+        assert "aws_cloudtrail" in content, "Should have CloudTrail"
+
+    def test_terraform_has_lambda(self):
+        content = Path("terraform/main.tf").read_text()
+        assert "aws_lambda_function" in content, "Should have Lambda function"
+        assert "aws_iam_role" in content, "Should have IAM role"
+
 
 class TestGitHubWorkflow:
-    """Test GitHub Actions workflow configuration."""
-
     def test_main_workflow_exists(self):
         assert os.path.isfile(".github/workflows/main.yaml"), "main.yaml workflow should exist"
 
@@ -51,8 +55,6 @@ class TestGitHubWorkflow:
 
 
 class TestIndexHTML:
-    """Test index.html file validity."""
-
     def test_index_html_exists(self):
         assert os.path.isfile("index.html"), "index.html should exist"
 
@@ -62,9 +64,18 @@ class TestIndexHTML:
         assert "<head" in content.lower() or "<body" in content.lower(), "Should have head or body tags"
 
 
-class TestSmokePipeline:
-    """Basic smoke tests to verify the project setup."""
+class TestLambdaHandler:
+    def test_lambda_handler_exists(self):
+        assert os.path.isfile("lambda/s3_event_processor.py"), "Lambda handler should exist"
 
+    def test_lambda_handler_valid_python(self):
+        content = Path("lambda/s3_event_processor.py").read_text()
+        assert "lambda_handler" in content, "Should have lambda_handler function"
+        assert "def " in content, "Should have function definitions"
+        compile(content, "s3_event_processor.py", "exec")
+
+
+class TestSmokePipeline:
     def test_smoke_pipeline(self):
         assert True
 

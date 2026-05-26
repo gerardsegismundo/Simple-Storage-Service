@@ -1,6 +1,2 @@
-aws_region = "us-east-1"
-replica_region = "us-east-1"
-bucket_name = "simple-storage-service-bucket"
-replica_bucket_name = "simple-storage-service-replica-bucket"
-lambda_function_name = "simple-storage-service-processor"
-kms_key_alias = "alias/simple-storage-service-kms"
+aws_region   = "us-east-1"
+project_name = "simple-storage"

@@ -9,6 +9,7 @@ terraform/*.tfvars
 
 # Generated Lambda package
 lambda/*.zip
+terraform/lambda.zip
 */__pycache__/
 *.pyc
 
@@ -20,3 +21,6 @@ lambda/*.zip
 *.swo
 .DS_Store
 Thumbs.db
+
+
+notes.txt
