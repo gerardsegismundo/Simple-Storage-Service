@@ -2,7 +2,7 @@ name: CI/CD Pipeline - Step-by-Step Promotion
 
 on:
   push:
-    branches: [develop]   # single entry point for full pipeline
+    branches: [develop]   
 
 permissions:
   id-token: write
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy_dev
     environment:
-      name: staging   # can add approval here
+      name: staging
 
     steps:
       - uses: actions/checkout@v4
