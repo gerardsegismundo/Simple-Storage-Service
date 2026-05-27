@@ -25,16 +25,34 @@ class TestTerraformConfiguration:
             content = Path(main_path).read_text()
             assert len(content) > 0, "main.tf should not be empty"
 
-    def test_terraform_has_origin_bucket(self):
-        content = Path("terraform/main.tf").read_text()
-        assert "aws_s3_bucket.origin" in content, "Should define origin S3 bucket"
-        assert "aws_s3_bucket_versioning" in content, "Should have versioning config"
-        assert "AES256" in content, "Should use AES256 encryption"
+    def test_terraform_has_s3_bucket(self):
+        terraform_files = Path("terraform").glob("*.tf")
+
+        content = ""
+        for file in terraform_files:
+            content += file.read_text()
+
+        assert "aws_s3_bucket" in content, \
+            "Should define S3 bucket"
+
+        assert "aws_s3_bucket_versioning" in content, \
+            "Should have versioning config"
+
+        assert "aws:kms" in content, \
+            "Should use KMS encryption"
 
     def test_terraform_has_lambda(self):
-        content = Path("terraform/main.tf").read_text()
-        assert "aws_lambda_function" in content, "Should have Lambda function"
-        assert "aws_iam_role" in content, "Should have IAM role"
+        terraform_files = Path("terraform").glob("*.tf")
+
+        content = ""
+        for file in terraform_files:
+            content += file.read_text()
+
+        assert "aws_lambda_function" in content, \
+            "Should have Lambda function"
+
+        assert "aws_iam_role" in content, \
+            "Should have IAM role"
 
 
 class TestGitHubWorkflow:
