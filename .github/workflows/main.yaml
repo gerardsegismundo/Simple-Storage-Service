@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Step-by-Step Promotion
+name: CI/CD Pipeline
 
 on:
   push:
