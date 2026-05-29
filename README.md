@@ -5,15 +5,13 @@
 
 ## Overview
 
-A clean, minimal AWS architecture demonstrating S3, Lambda, and CloudTrail integration suitable for student submissions. This project focuses on core AWS services without requiring elevated IAM permissions.
+A clean, minimal AWS architecture demonstrating S3 and Lambda integration suitable for student submissions.
 
 ## ✨ Key Features
 
 ### Core Components
-- **S3 Origin Bucket**: With versioning, AES256 encryption, and lifecycle rules
-- **S3 Audit Bucket**: CloudTrail logging destination
+- **S3 Bucket**: Versioning enabled, AES256 encryption, lifecycle rules
 - **Lambda Function**: Triggered by S3 upload events for simple processing
-- **CloudTrail**: API activity logging to audit bucket
 - **Minimal IAM**: Basic Lambda execution role with least privilege
 
 ## 🏗️ Architecture
@@ -23,7 +21,7 @@ A clean, minimal AWS architecture demonstrating S3, Lambda, and CloudTrail integ
 │                    S3 Origin Bucket                          │
 │  - Versioning enabled                                      │
 │  - AES256 encryption                                       │
-│  - Lifecycle rules (30 days → STANDARD_IA, 365 days NC → delete)│
+│  - Lifecycle rules (30 days → STANDARD_IA, 365 days NC delete)│
 └────────────────────────────────────────────────────────────┘
                             │
                             ├─→ S3 Events (ObjectCreated)
@@ -35,13 +33,8 @@ A clean, minimal AWS architecture demonstrating S3, Lambda, and CloudTrail integ
                             │
                             ▼
            ┌────────────────────────────────┐
-           │  CloudWatch Logs (basic exec)│
+           │  CloudWatch Logs (auto-created)│
            └────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────┐
-│                    CloudTrail                                │
-│         Logging to S3 Audit Bucket                           │
-└────────────────────────────────────────────────────────────┘
 ```
 
 ## 📦 Project Structure
@@ -60,17 +53,11 @@ simple-storage-service/
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- AWS Account with basic S3/Lambda/CloudTrail permissions
-- Terraform >= 1.0
-- Python 3.11
-
 ### Deploy
 
 ```bash
 cd terraform
 terraform init
-terraform plan
 terraform apply
 ```
 
@@ -81,14 +68,17 @@ Upload a file to the origin bucket - the Lambda will automatically process the e
 ## 🧪 Testing
 
 ```bash
-# Run validation tests
 pytest tests/ -v
 ```
 
 ## 🔒 Security
 
-- **No ACLs**: Uses IAM policies and bucket policies
+- **No ACLs**: Uses IAM policies only
 - **AES256 Encryption**: Server-side encryption enabled
+<<<<<<< HEAD
+- **Public Access Blocked**: All public access blocked
+- **Minimal IAM**: Lambda role attaches only AWSLambdaBasicExecutionRole
+=======
 - **Public Access Blocked**: All public access blocked on both buckets
 - **Minimal IAM**: Lambda role attaches only `AWSLambdaBasicExecutionRole`
 
@@ -98,3 +88,4 @@ pytest tests/ -v
 - `audit_bucket_name`: CloudTrail logs destination
 - `cloudtrail_name`: CloudTrail trail name
 - `lambda_function_name`: S3 event processor function
+>>>>>>> master
