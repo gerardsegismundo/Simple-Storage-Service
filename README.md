@@ -1,5 +1,8 @@
 # Simple Storage Service (S3) Project
 
+<img width="1297" height="400" alt="image" src="https://github.com/user-attachments/assets/299443c7-2169-4162-9f33-be87bd232c09" />
+
+
 ## Overview
 
 A clean, minimal AWS architecture demonstrating S3, Lambda, and CloudTrail integration suitable for student submissions. This project focuses on core AWS services without requiring elevated IAM permissions.
