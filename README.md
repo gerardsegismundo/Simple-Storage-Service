@@ -1,5 +1,8 @@
 # Simple Storage Service (S3) Project
 
+<img width="1297" height="400" alt="image" src="https://github.com/user-attachments/assets/299443c7-2169-4162-9f33-be87bd232c09" />
+
+
 ## Overview
 
 A clean, minimal AWS architecture demonstrating S3 and Lambda integration suitable for student submissions.
@@ -72,5 +75,17 @@ pytest tests/ -v
 
 - **No ACLs**: Uses IAM policies only
 - **AES256 Encryption**: Server-side encryption enabled
+<<<<<<< HEAD
 - **Public Access Blocked**: All public access blocked
 - **Minimal IAM**: Lambda role attaches only AWSLambdaBasicExecutionRole
+=======
+- **Public Access Blocked**: All public access blocked on both buckets
+- **Minimal IAM**: Lambda role attaches only `AWSLambdaBasicExecutionRole`
+
+## 📋 Outputs
+
+- `origin_bucket_name`: The S3 bucket for file uploads
+- `audit_bucket_name`: CloudTrail logs destination
+- `cloudtrail_name`: CloudTrail trail name
+- `lambda_function_name`: S3 event processor function
+>>>>>>> master
