@@ -2,6 +2,9 @@ provider "github" {
   token = var.github_token
 }
 
+# =========================
+# VARIABLES
+# =========================
 variable "github_token" {
   type      = string
   sensitive = true
@@ -9,8 +12,12 @@ variable "github_token" {
 
 variable "repo_name" {
   type    = string
-  default = "https://github.com/gerardsegismundo/Simple-Storage-Service"
+  default = "Simple-Storage-Service"
 }
+
+# =========================
+# GITHUB ENVIRONMENTS
+# =========================
 
 resource "github_repository_environment" "dev" {
   repository  = var.repo_name
@@ -31,7 +38,7 @@ resource "github_repository_environment" "prod" {
   environment = "production"
 
   reviewers {
-    users = ["your-github-username"]
+    users = ["gerardsegismundo"]
   }
 
   deployment_branch_policy {
@@ -39,9 +46,13 @@ resource "github_repository_environment" "prod" {
   }
 }
 
+# =========================
+# BRANCH PROTECTION RULES
+# =========================
+
 resource "github_branch_protection" "develop" {
-  repository_id = var.repo_name
-  pattern       = "develop"
+  repository = var.repo_name
+  pattern    = "develop"
 
   required_status_checks {
     strict = true
@@ -53,28 +64,28 @@ resource "github_branch_protection" "develop" {
 }
 
 resource "github_branch_protection" "staging" {
-  repository_id = var.repo_name
-  pattern       = "staging"
-
-  required_pull_request_reviews {
-    required_approving_review_count = 1
-  }
+  repository = var.repo_name
+  pattern    = "staging"
 
   required_status_checks {
     strict = true
+  }
+
+  required_pull_request_reviews {
+    required_approving_review_count = 1
   }
 }
 
 resource "github_branch_protection" "main" {
-  repository_id = var.repo_name
-  pattern       = "main"
-
-  required_pull_request_reviews {
-    required_approving_review_count = 1
-  }
+  repository = var.repo_name
+  pattern    = "main"
 
   required_status_checks {
     strict = true
+  }
+
+  required_pull_request_reviews {
+    required_approving_review_count = 1
   }
 
   enforce_admins = true
