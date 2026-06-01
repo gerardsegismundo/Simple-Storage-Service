@@ -2,9 +2,6 @@ provider "github" {
   token = var.github_token
 }
 
-# =========================
-# VARIABLES
-# =========================
 variable "github_token" {
   type      = string
   sensitive = true
@@ -29,7 +26,7 @@ resource "github_repository_environment" "staging" {
   environment = "staging"
 
   reviewers {
-    users = ["gerardsegismundo"]
+    users = [30321279]  
   }
 }
 
@@ -38,11 +35,12 @@ resource "github_repository_environment" "prod" {
   environment = "production"
 
   reviewers {
-    users = ["gerardsegismundo"]
+    users = [30321279]  
   }
 
   deployment_branch_policy {
-    protected_branches = true
+    protected_branches     = true
+    custom_branch_policies = false
   }
 }
 
@@ -51,8 +49,8 @@ resource "github_repository_environment" "prod" {
 # =========================
 
 resource "github_branch_protection" "develop" {
-  repository = var.repo_name
-  pattern    = "develop"
+  repository_id = var.repo_name
+  pattern       = "develop"
 
   required_status_checks {
     strict = true
@@ -64,8 +62,8 @@ resource "github_branch_protection" "develop" {
 }
 
 resource "github_branch_protection" "staging" {
-  repository = var.repo_name
-  pattern    = "staging"
+  repository_id = var.repo_name
+  pattern       = "staging"
 
   required_status_checks {
     strict = true
@@ -77,8 +75,8 @@ resource "github_branch_protection" "staging" {
 }
 
 resource "github_branch_protection" "main" {
-  repository = var.repo_name
-  pattern    = "main"
+  repository_id = var.repo_name
+  pattern       = "main"
 
   required_status_checks {
     strict = true
