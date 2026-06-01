@@ -26,7 +26,7 @@ resource "github_repository_environment" "staging" {
   environment = "staging"
 
   reviewers {
-    users = [30321279]  
+    users = [30321279]
   }
 }
 
@@ -35,7 +35,7 @@ resource "github_repository_environment" "prod" {
   environment = "production"
 
   reviewers {
-    users = [30321279]  
+    users = [30321279]
   }
 
   deployment_branch_policy {
