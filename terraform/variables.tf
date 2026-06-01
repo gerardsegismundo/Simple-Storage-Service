@@ -13,11 +13,6 @@ variable "github_token" {
   sensitive = true
 }
 
-variable "github_token" {
-  type      = string
-  sensitive = true
-}
-
 variable "repo_name" {
   type    = string
   default = "Simple-Storage-Service"
