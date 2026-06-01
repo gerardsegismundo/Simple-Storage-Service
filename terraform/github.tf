@@ -2,16 +2,6 @@ provider "github" {
   token = var.github_token
 }
 
-variable "github_token" {
-  type      = string
-  sensitive = true
-}
-
-variable "repo_name" {
-  type    = string
-  default = "Simple-Storage-Service"
-}
-
 # =========================
 # GITHUB ENVIRONMENTS
 # =========================
