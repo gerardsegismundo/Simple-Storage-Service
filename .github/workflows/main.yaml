@@ -137,6 +137,9 @@ jobs:
     environment:
       name: production   
 
+    env:
+      TF_VAR_github_token: ${{ secrets.GH_PAT }}
+
     steps:
       - uses: actions/checkout@v4
 
