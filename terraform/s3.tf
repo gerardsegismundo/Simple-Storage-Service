@@ -25,7 +25,7 @@ resource "aws_s3_bucket_versioning" "primary" {
 # =========================
 # AES256 ENCRYPTION 
 # =========================
-/* resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
   bucket = aws_s3_bucket.primary.id
 
   rule {
@@ -33,7 +33,7 @@ resource "aws_s3_bucket_versioning" "primary" {
       sse_algorithm = "AES256"
     }
   }
-} */
+}
 
 # =========================
 # LIFECYCLE
