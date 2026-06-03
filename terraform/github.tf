@@ -38,7 +38,7 @@ resource "github_repository_environment" "prod" {
 # BRANCH PROTECTION RULES
 # =========================
 
-resource "github_branch_protection" "develop" {
+/* resource "github_branch_protection" "develop" {
   repository_id = var.repo_name
   pattern       = "develop"
 
@@ -77,4 +77,4 @@ resource "github_branch_protection" "main" {
   }
 
   enforce_admins = true
-}
+} */
