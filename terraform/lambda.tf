@@ -29,6 +29,8 @@ resource "aws_lambda_function" "processor" {
   handler          = "s3_event_processor.lambda_handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  dead_letter_config { target_arn = aws_sqs_queue.dlq.arn }
+  reserved_concurrent_executions = 10
 }
 
 resource "aws_lambda_permission" "allow_s3" {
