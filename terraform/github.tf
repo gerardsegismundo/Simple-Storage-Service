@@ -38,43 +38,43 @@ resource "github_repository_environment" "prod" {
 # BRANCH PROTECTION RULES
 # =========================
 
-# resource "github_branch_protection" "develop" {
-#   repository_id = var.repo_name
-#   pattern       = "develop"
+/* resource "github_branch_protection" "develop" {
+  repository_id = var.repo_name
+  pattern       = "develop"
 
-#   required_status_checks {
-#     strict = true
-#   }
+  required_status_checks {
+    strict = true
+  }
 
-#   required_pull_request_reviews {
-#     required_approving_review_count = 0
-#   }
-# }
+  required_pull_request_reviews {
+    required_approving_review_count = 0
+  }
+}
 
-# resource "github_branch_protection" "staging" {
-#   repository_id = var.repo_name
-#   pattern       = "staging"
+resource "github_branch_protection" "staging" {
+  repository_id = var.repo_name
+  pattern       = "staging"
 
-#   required_status_checks {
-#     strict = true
-#   }
+  required_status_checks {
+    strict = true
+  }
 
-#   required_pull_request_reviews {
-#     required_approving_review_count = 1
-#   }
-# }
+  required_pull_request_reviews {
+    required_approving_review_count = 1
+  }
+}
 
-# resource "github_branch_protection" "main" {
-#   repository_id = var.repo_name
-#   pattern       = "main"
+resource "github_branch_protection" "main" {
+  repository_id = var.repo_name
+  pattern       = "main"
 
-#   required_status_checks {
-#     strict = true
-#   }
+  required_status_checks {
+    strict = true
+  }
 
-#   required_pull_request_reviews {
-#     required_approving_review_count = 1
-#   }
+  required_pull_request_reviews {
+    required_approving_review_count = 1
+  }
 
-#   enforce_admins = true
-# }
+  enforce_admins = true
+} */
