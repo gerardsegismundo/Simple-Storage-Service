@@ -1,0 +1,18 @@
+skip-check:
+  # S3 encryption (you intentionally disabled KMS)
+  - CKV_AWS_145
+
+  # S3 logging (optional for your project)
+  - CKV_AWS_18
+
+  # Lambda VPC requirement (not needed for event-driven Lambda)
+  - CKV_AWS_117
+
+  # X-Ray tracing (not required for simple Lambda)
+  - CKV_AWS_50
+
+  # Lambda code signing (advanced enterprise feature)
+  - CKV_AWS_272
+
+  # S3 event notifications (optional for learning project)
+  - CKV2_AWS_62
