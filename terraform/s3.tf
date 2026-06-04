@@ -25,7 +25,7 @@ resource "aws_s3_bucket_versioning" "primary" {
 # =========================
 # AES256 ENCRYPTION 
 # =========================
-/* resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
   bucket = aws_s3_bucket.primary.id
 
   rule {
@@ -33,12 +33,12 @@ resource "aws_s3_bucket_versioning" "primary" {
       sse_algorithm = "AES256"
     }
   }
-} */
+}
 
 # =========================
 # LIFECYCLE
 # =========================
-/* resource "aws_s3_bucket_lifecycle_configuration" "primary" {
+resource "aws_s3_bucket_lifecycle_configuration" "primary" {
   bucket = aws_s3_bucket.primary.id
 
   rule {
@@ -56,16 +56,16 @@ resource "aws_s3_bucket_versioning" "primary" {
       noncurrent_days = 365
     }
   }
-} */
+}
 
 # =========================
 # PUBLIC ACCESS BLOCK
 # =========================
-# resource "aws_s3_bucket_public_access_block" "primary" {
-#   bucket = aws_s3_bucket.primary.id
+resource "aws_s3_bucket_public_access_block" "primary" {
+  bucket = aws_s3_bucket.primary.id
 
-#   block_public_acls       = true
-#   block_public_policy     = true
-#   ignore_public_acls      = true
-#   restrict_public_buckets = true
-# }
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
