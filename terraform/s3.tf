@@ -36,7 +36,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
 }
 
 # =========================
-# LIFECYCLE
+# LIFECYCLE -- TRANSITION TO STANDARD_IA AND NONCURRENT VERSION EXPIRATION
 # =========================
 resource "aws_s3_bucket_lifecycle_configuration" "primary" {
   bucket = aws_s3_bucket.primary.id
