@@ -1,14 +1,14 @@
 # # Secondary bucket
 resource "aws_s3_bucket" "replica" {
-  provider      = aws.replica
-  bucket        = "${var.project_name}-replica-${local.suffix}"
+  provider = aws.replica
+  bucket   = "${var.project_name}-replica-${local.suffix}"
   # force_destroy = true
 
   # object_lock_enabled = true
   lifecycle_rule {
     id      = "replica-lifecycle"
     enabled = true
-    prefix = ""
+    prefix  = ""
     expiration { days = 365 }
     abort_incomplete_multipart_upload_days = 7
   }
