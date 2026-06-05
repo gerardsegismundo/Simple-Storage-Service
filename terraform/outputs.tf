@@ -13,3 +13,7 @@ output "replica_bucket" {
 output "lambda_function" {
   value = aws_lambda_function.processor.function_name
 }
+
+output "website_url" {
+  value = "${aws_s3_bucket.primary.bucket}.s3-website-${var.primary_region}.amazonaws.com"
+}

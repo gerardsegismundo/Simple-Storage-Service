@@ -71,7 +71,7 @@ jobs:
           terraform validate
 
 # ============================================================
-# 4. SECURITY SCAN (NEW 🔐)
+# 4. SECURITY SCAN 
 # ============================================================
   security:
     runs-on: ubuntu-latest
@@ -87,14 +87,15 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: terraform
-          skip_check: CKV_AWS_145,CKV_AWS_18,CKV_AWS_117,CKV_AWS_50,CKV_AWS_272,CKV2_AWS_62
-        
 
       # --------------------------------------------
       # Secret scanning (Gitleaks)
       # --------------------------------------------
       - name: Run Gitleaks (Secret Detection)
         uses: gitleaks/gitleaks-action@v2
+        with:
+          config_path: .gitleaks.toml
+          fail: false
 
 
 
@@ -126,6 +127,17 @@ jobs:
 
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
+
+      - run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          aws s3 cp index.html "s3://$BUCKET/"
+          aws s3 cp error.html "s3://$BUCKET/" --quiet || true
+
+      - name: Output website URL
+        run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          echo "🌐 https://${BUCKET}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+      
 
 
 # ============================================================

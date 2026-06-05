@@ -11,6 +11,35 @@ resource "aws_s3_bucket" "primary" {
   force_destroy = true
 }
 
+resource "aws_s3_bucket_website_configuration" "primary" {
+  bucket = aws_s3_bucket.primary.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
+  }
+}
+
+# =========================
+# PUBLIC READ BLOCK
+# =========================
+resource "aws_s3_bucket_policy" "primary_website" {
+  bucket = aws_s3_bucket.primary.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.primary.arn}/*"
+    }]
+  })
+}
+
 # =========================
 # VERSIONING
 # =========================
@@ -62,9 +91,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "primary" {
   }
 }
 
-# =========================
-# PUBLIC ACCESS BLOCK
-# =========================
+
 resource "aws_s3_bucket_public_access_block" "primary" {
   bucket = aws_s3_bucket.primary.id
 

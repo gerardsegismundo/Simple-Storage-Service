@@ -5,12 +5,19 @@ resource "aws_s3_bucket" "replica" {
   # force_destroy = true
 
   # object_lock_enabled = true
-  lifecycle_rule {
-    id      = "replica-lifecycle"
-    enabled = true
-    prefix  = ""
+
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "replica" {
+  provider = aws.replica
+  bucket   = aws_s3_bucket.replica.id
+
+  rule {
+    id     = "replica-lifecycle"
+    status = "Enabled"
+
     expiration { days = 365 }
-    abort_incomplete_multipart_upload_days = 7
+    abort_incomplete_multipart_upload { days_after_initiation = 7 }
   }
 }
 
