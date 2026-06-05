@@ -3,7 +3,7 @@ skip-check:
   - CKV_AWS_145
   - CKV_AWS_27    # SQS encryption (AWS-managed key)
   - CKV2_AWS_73   # SQS encryption (CMK required)
-  - CKV_AWS_29    # SNS topic encryption (AWS-managed key acceptable)
+  - CKV_AWS_26 # SNS topic encryption
 
   # S3 logging (optional)
   - CKV_AWS_18
