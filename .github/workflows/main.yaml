@@ -87,9 +87,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: terraform
-          skip_check: CKV_AWS_145,CKV_AWS_18,CKV_AWS_117,CKV_AWS_50,CKV_AWS_272,CKV2_AWS_62
-        
-
+          
       # --------------------------------------------
       # Secret scanning (Gitleaks)
       # --------------------------------------------
