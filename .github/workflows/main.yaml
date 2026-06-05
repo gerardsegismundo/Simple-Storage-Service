@@ -71,7 +71,7 @@ jobs:
           terraform validate
 
 # ============================================================
-# 4. SECURITY SCAN (NEW 🔐)
+# 4. SECURITY SCAN 
 # ============================================================
   security:
     runs-on: ubuntu-latest
