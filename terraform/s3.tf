@@ -40,16 +40,6 @@ resource "aws_s3_bucket_policy" "primary_website" {
   })
 }
 
-resource "aws_s3_bucket_public_access_block" "primary" {
-  bucket = aws_s3_bucket.primary.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-
 # =========================
 # VERSIONING
 # =========================
@@ -60,8 +50,6 @@ resource "aws_s3_bucket_versioning" "primary" {
     status = "Enabled"
   }
 }
-
-
 
 # =========================
 # AES256 ENCRYPTION 
@@ -103,9 +91,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "primary" {
   }
 }
 
-# =========================
-# PUBLIC ACCESS BLOCK
-# =========================
+
 resource "aws_s3_bucket_public_access_block" "primary" {
   bucket = aws_s3_bucket.primary.id
 
