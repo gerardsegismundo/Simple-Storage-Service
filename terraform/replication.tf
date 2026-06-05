@@ -5,7 +5,7 @@ resource "aws_s3_bucket" "replica" {
   # force_destroy = true
 
   # object_lock_enabled = true
-  
+
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "replica" {
