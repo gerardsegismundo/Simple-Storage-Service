@@ -87,7 +87,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: terraform
-          
+
       # --------------------------------------------
       # Secret scanning (Gitleaks)
       # --------------------------------------------
@@ -124,6 +124,17 @@ jobs:
 
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
+
+      - run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          aws s3 cp index.html "s3://$BUCKET/"
+          aws s3 cp error.html "s3://$BUCKET/" --quiet || true
+
+      - name: Output website URL
+        run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          echo "🌐 https://${BUCKET}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+      
 
 
 # ============================================================
