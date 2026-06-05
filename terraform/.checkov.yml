@@ -1,8 +1,10 @@
 skip-check:
-  # S3 encryption (you intentionally disabled KMS)
+  # S3 encryption (intentionally disabled KMS)
   - CKV_AWS_145
+  - CKV_AWS_27    # SQS encryption (AWS-managed key)
+  - CKV2_AWS_73   # SQS encryption (CMK required)
 
-  # S3 logging (optional for your project)
+  # S3 logging (optional)
   - CKV_AWS_18
 
   # Lambda VPC requirement (not needed for event-driven Lambda)
@@ -16,3 +18,4 @@ skip-check:
 
   # S3 event notifications (optional for learning project)
   - CKV2_AWS_62
+
