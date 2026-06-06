@@ -17,3 +17,11 @@ output "lambda_function" {
 output "website_url" {
   value = "${aws_s3_bucket.primary.bucket}.s3-website-${var.primary_region}.amazonaws.com"
 }
+
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.website.id
+}
+
+output "website_url" {
+  value = aws_cloudfront_distribution.website.domain_name
+}
