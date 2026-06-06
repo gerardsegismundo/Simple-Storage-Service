@@ -1,4 +1,6 @@
-# Simple Storage Service (S3) Project
+# Simple Storage Service (S3) Platform
+
+A production-ready AWS infrastructure for static website hosting with automated CI/CD, S3 object processing, and multi-region replication.
 
 ## Deploy_dev
 <img width="1440" height="191" alt="image" src="https://github.com/user-attachments/assets/381b4c25-4961-4987-9f24-525c83da327d" />
@@ -9,38 +11,88 @@
 ## Deploy_prod
 <img width="1417" height="329" alt="image" src="https://github.com/user-attachments/assets/262b4bac-591e-493d-ba88-b90619463678" />
 
-## Overview
+## ✨ Highlights
 
-A clean, minimal AWS architecture demonstrating S3 and Lambda integration suitable for student submissions.
-
-## ✨ Key Features
-
-### Core Components
-- **S3 Bucket**: Versioning enabled, AES256 encryption, lifecycle rules
-- **Lambda Function**: Triggered by S3 upload events for simple processing
-- **Minimal IAM**: Basic Lambda execution role with least privilege
+- **Automated CI/CD**: Multi-environment deployments with GitHub Actions
+- **Static Website**: S3 + CloudFront for fast, secure content delivery
+- **Event-Driven Processing**: Lambda triggers on S3 object uploads
+- **Multi-Region Replication**: Automatic bucket replication for disaster recovery
+- **Security First**: Encryption at rest, public access blocking, dead-letter queues
+- **Observability**: CloudWatch alarms with SNS alerting for failures
 
 ## 🏗️ Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    S3 Origin Bucket                          │
-│  - Versioning enabled                                      │
-│  - AES256 encryption                                       │
-│  - Lifecycle rules (30 days → STANDARD_IA, 365 days NC delete)│
-└────────────────────────────────────────────────────────────┘
-                            │
-                            ├─→ S3 Events (ObjectCreated)
-                            ▼
-                     ┌──────────────┐
-                     │    Lambda    │
-                     │  (Python)    │
-                     └──────────────┘
-                            │
-                            ▼
-           ┌────────────────────────────────┐
-           │  CloudWatch Logs (auto-created)│
-           └────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              GITHUB REPOSITORY                                                   │
+│                                (Simple-Storage-Service)                                          │
+└────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              GITHUB ACTIONS WORKFLOW                                             │
+│                                                                                                │
+│    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐                  │
+│    │  BUILD  │───▶│  TEST   │───▶│VALIDATE │───▶│SECURITY │───▶│  DEPLOY │                  │
+│    │(fmt)    │    │(pytest) │    │(terraform)│   │(Checkov)│   │(TF)     │                  │
+│    └─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘                  │
+│                                   │                                                               
+│                                   └──────────────────────────────┐                                    
+└────────────────────────────────────────────────────────────────────────────────────────────────┘                                    
+                                                              │     
+                                                              ▼     
+┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  AWS US-EAST-1                                               │
+│                                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │   S3 PRIMARY BUCKET                                                                  │  │
+│  │   (Static Website Origin)                                                            │  │
+│  │   ├── Static website hosting enabled (index.html, error.html)                           │  │
+│  │   ├── Versioning enabled                                                             │  │
+│  │   ├── AES256 encryption at rest                                                    │  │
+│  │   ├── Lifecycle rules (30d → STANDARD_IA, 365d version cleanup)                      │  │
+│  │   └── Public access blocked (OAI-only access)                                          │  │
+│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
+│           │                           │                         │                          
+│           │ ObjectCreated             │ OriginAccessIdentity    │ Invalidation             
+│           │ Event                     │ (CloudFront)            │                          
+│           ▼                           ▼                         ▼                          
+│  ┌─────────────────┐    ┌─────────────────────────────────┐    ┌───────────────────────┐  │
+│  │   LAMBDA        │    │    CLOUDFRONT DISTRIBUTION       │    │    CLOUDFRONT         │  │
+│  │                 │    │                                 │    │    (Cache Invalidate)  │  │
+│  │ - Python 3.11   │    │ - OAI for secure S3 access      │    │                       │  │
+│  │ - 10 reserved   │    │ - HTTPS redirect enforced       │    │                       │  │
+│  │ - DLQ enabled   │    │ - IPv6 enabled                │    │                       │  │
+│  │ - CloudWatch    │    │ - Default cert                │    │                       │  │
+│  └─────────────────┘    └─────────────────────────────────┘    └───────────────────────┘  │
+│           │                          │                                                    
+│           │ Errors                   │                                                    
+│           ▼                          ▼                                                    
+│  ┌─────────────────┐    ┌─────────────────────────────────┐                              
+│  │    SQS DLQ      │    │   CLOUDWATCH METRICS              │                              
+│  │                 │    │                                 │                              
+│  │ - KMS encrypted  │    │ - Lambda error alarms (SNS)     │                              
+│  │ - Failure capture │    │ - DLQ depth alarm              │                              
+│  └─────────────────┘    └─────────────────────────────────┘                              
+│                                   │                          │                              
+│                                   └──────────┬───────────────┘                              
+│                                              ▼                                              
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │    SNS ALERTS TOPIC                                                                    │  │
+│  │                                                                                       │  │
+│  │    - Email subscription for notifications                                               │  │
+│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │   S3 REPLICA BUCKET                                                                    │  │
+│  │   (Cross-Region Replication Destination)                                                │  │
+│  │   ├── Versioning enabled                                                               │  │
+│  │   └── Lifecycle: 365d expiration                                                     │  │
+│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
+│           ▲                                                                                 
+│           │ Replication                                                                           
+│           └────────────────────────────────────────────────────────────────────────────┘      
+└────────────────────────────────────────────────────────────────────────────────────────────────┘      
 ```
 
 ## 📦 Project Structure
@@ -48,13 +100,24 @@ A clean, minimal AWS architecture demonstrating S3 and Lambda integration suitab
 ```
 simple-storage-service/
 ├── terraform/
-│   └── main.tf              # All infrastructure as code
+│   ├── main.tf              # Provider configuration
+│   ├── s3.tf                # Primary/replica buckets, CloudFront, OAI
+│   ├── lambda.tf            # Lambda function, IAM role, SNS alerts
+│   ├── dlq.tf               # Dead-letter queue for Lambda failures
+│   ├── replication.tf       # Cross-region replication config
+│   ├── github.tf            # GitHub environment setup
+│   ├── outputs.tf           # Terraform outputs
+│   ├── variables.tf         # Input variables
+│   └── .checkov.yml         # Security scan exclusions
 ├── lambda/
-│   └── s3_event_processor.py  # Lambda handler for S3 events
+│   └── s3_event_processor.py # Lambda handler for S3 events
 ├── tests/
-│   └── test_smoke.py        # Configuration validation tests
-└── .github/workflows/
-    └── main.yaml            # CI/CD pipeline
+│   └── test_smoke.py        # Smoke tests for validation
+├── .github/workflows/
+│   └── main.yaml            # CI/CD pipeline (4-stage deployments)
+├── index.html               # Static website entry point
+├── error.html               # Static website error page
+└── .gitleaks.toml           # Secret scanning configuration
 ```
 
 ## 🚀 Quick Start
@@ -69,7 +132,7 @@ terraform apply
 
 ### Test Lambda
 
-Upload a file to the origin bucket - the Lambda will automatically process the event.
+Upload a file to the primary bucket - the Lambda will automatically process the event and log to CloudWatch.
 
 ## 🧪 Testing
 
@@ -77,21 +140,28 @@ Upload a file to the origin bucket - the Lambda will automatically process the e
 pytest tests/ -v
 ```
 
-## 🔒 Security
+## 🔒 Security Features
 
-- **No ACLs**: Uses IAM policies only
-- **AES256 Encryption**: Server-side encryption enabled
-<<<<<<< HEAD
-- **Public Access Blocked**: All public access blocked
-- **Minimal IAM**: Lambda role attaches only AWSLambdaBasicExecutionRole
-=======
-- **Public Access Blocked**: All public access blocked on both buckets
-- **Minimal IAM**: Lambda role attaches only `AWSLambdaBasicExecutionRole`
+- **AES256 Encryption**: Server-side encryption on all S3 buckets
+- **Public Access Blocked**: All public access blocked, OAI-only for CloudFront
+- **Dead-Letter Queue**: Failed Lambda invocations routed to SQS
+- **Security Scanning**: Checkov + Gitleaks in CI pipeline
+- **Branch Protection**: GitHub environments with required reviewers
 
-## 📋 Outputs
+## 📋 Terraform Outputs
 
-- `origin_bucket_name`: The S3 bucket for file uploads
-- `audit_bucket_name`: CloudTrail logs destination
-- `cloudtrail_name`: CloudTrail trail name
-- `lambda_function_name`: S3 event processor function
->>>>>>> master
+- `primary_bucket`: The S3 bucket for static website hosting
+- `replica_bucket`: Cross-region replication destination
+- `lambda_function`: S3 event processor function name
+- `website_url`: CloudFront HTTPS endpoint
+- `cloudfront_distribution_id`: CloudFront distribution ID (for cache invalidation)
+
+## 🌐 Environment Deployments
+
+| Branch | Environment | Trigger |
+|--------|-------------|---------|
+| `develop` | Development | Auto-deploy on push |
+| `staging` | Staging | Auto-deploy on push |
+| `main` | Production | Auto-deploy on push |
+
+Each environment deploys the full infrastructure stack with the same configuration.
