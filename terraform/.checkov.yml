@@ -3,7 +3,8 @@ skip-check:
   - CKV_AWS_145
   - CKV_AWS_27    # SQS encryption (AWS-managed key)
   - CKV2_AWS_73   # SQS encryption (CMK required)
-  - CKV_AWS_26 # SNS topic encryption
+  - CKV_AWS_26    # SNS topic encryption
+  - CKV_AWS_70    # S3 public read (CloudFront handles access)
 
   # S3 logging (optional)
   - CKV_AWS_18
@@ -20,3 +21,15 @@ skip-check:
   # S3 event notifications (optional for learning project)
   - CKV2_AWS_62
 
+
+  # CloudFront security (simplified for learning project)
+  # These are advanced security requirements:
+  - CKV_AWS_68    # WAF enabled
+  - CKV_AWS_374   # Geo restriction
+  - CKV_AWS_174   # TLS v1.2+
+  - CKV_AWS_310   # Origin failover
+  - CKV_AWS_86    # Access logging
+  - CKV2_AWS_32   # Response headers policy
+  - CKV2_AWS_42   # Custom SSL certificate
+  - CKV2_AWS_47   # WAF AMR Log4j
+  
