@@ -24,75 +24,73 @@ A production-ready AWS infrastructure for static website hosting with automated 
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                              GITHUB REPOSITORY                                                   │
-│                                (Simple-Storage-Service)                                          │
+│                              GITHUB REPOSITORY                                               │
+│                                (Simple-Storage-Service)                                        │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
                                            │
                                            ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                              GITHUB ACTIONS WORKFLOW                                             │
+│                              GITHUB ACTIONS WORKFLOW                                           │
 │                                                                                                │
-│    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐                  │
-│    │  BUILD  │───▶│  TEST   │───▶│VALIDATE │───▶│SECURITY │───▶│  DEPLOY │                  │
-│    │(fmt)    │    │(pytest) │    │(terraform)│   │(Checkov)│   │(TF)     │                  │
-│    └─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘                  │
-│                                   │                                                               
-│                                   └──────────────────────────────┐                                    
-└────────────────────────────────────────────────────────────────────────────────────────────────┘                                    
-                                                              │     
-                                                              ▼     
+│    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌─────────┐    ┌──────────┐                 │
+│    │  BUILD  │───▶│  TEST   │───▶│ VALIDATE │───▶│ SECURITY │───▶│  DEPLOY  │                 │
+│    │ (fmt)   │    │(pytest) │    │(terraform)│   │(Checkov)│   │   (TF)   │                 │
+│    └─────────┘    └─────────┘    └──────────┘    └─────────┘    └──────────┘                 │
+└────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                                                    │
+                                                                                    ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                  AWS US-EAST-1                                               │
 │                                                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │   S3 PRIMARY BUCKET                                                                  │  │
-│  │   (Static Website Origin)                                                            │  │
-│  │   ├── Static website hosting enabled (index.html, error.html)                           │  │
-│  │   ├── Versioning enabled                                                             │  │
-│  │   ├── AES256 encryption at rest                                                    │  │
-│  │   ├── Lifecycle rules (30d → STANDARD_IA, 365d version cleanup)                      │  │
-│  │   └── Public access blocked (OAI-only access)                                          │  │
+│  │   S3 PRIMARY BUCKET                                                                     │  │
+│  │   (Static Website Origin)                                                               │  │
+│  │   ├── Static website hosting (index.html, error.html)                                     │  │
+│  │   ├── Versioning enabled                                                                │  │
+│  │   ├── AES256 encryption at rest                                                        │  │
+│  │   ├── Lifecycle: 30d → STANDARD_IA, 365d version cleanup                                │  │
+│  │   └── Public access blocked (OAI-only)                                                    │  │
 │  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│           │                           │                         │                          
-│           │ ObjectCreated             │ OriginAccessIdentity    │ Invalidation             
-│           │ Event                     │ (CloudFront)            │                          
-│           ▼                           ▼                         ▼                          
+│           │                           │                         │
+│           │ ObjectCreated             │ OriginAccessIdentity    │ Cache Invalidation
+│           │ Event                     │ (CloudFront)            │
+│           ▼                           ▼                         ▼
 │  ┌─────────────────┐    ┌─────────────────────────────────┐    ┌───────────────────────┐  │
-│  │   LAMBDA        │    │    CLOUDFRONT DISTRIBUTION       │    │    CLOUDFRONT         │  │
-│  │                 │    │                                 │    │    (Cache Invalidate)  │  │
-│  │ - Python 3.11   │    │ - OAI for secure S3 access      │    │                       │  │
-│  │ - 10 reserved   │    │ - HTTPS redirect enforced       │    │                       │  │
-│  │ - DLQ enabled   │    │ - IPv6 enabled                │    │                       │  │
-│  │ - CloudWatch    │    │ - Default cert                │    │                       │  │
+│  │   LAMBDA        │    │    CLOUDFRONT DISTRIBUTION       │    │   CLOUDFRONT          │  │
+│  │                 │    │                                 │    │   (Cache Invalidate)    │  │
+│  │ - Python 3.11   │    │ - OAI for secure S3 access        │    │                       │  │
+│  │ - 10 reserved   │    │ - HTTPS redirect enforced         │    │                       │  │
+│  │ - DLQ enabled   │    │ - IPv6 enabled                  │    │                       │  │
+│  │ - CloudWatch    │    │ - Default certificate           │    │                       │  │
 │  └─────────────────┘    └─────────────────────────────────┘    └───────────────────────┘  │
-│           │                          │                                                    
-│           │ Errors                   │                                                    
-│           ▼                          ▼                                                    
-│  ┌─────────────────┐    ┌─────────────────────────────────┐                              
-│  │    SQS DLQ      │    │   CLOUDWATCH METRICS              │                              
-│  │                 │    │                                 │                              
-│  │ - KMS encrypted  │    │ - Lambda error alarms (SNS)     │                              
-│  │ - Failure capture │    │ - DLQ depth alarm              │                              
-│  └─────────────────┘    └─────────────────────────────────┘                              
-│                                   │                          │                              
-│                                   └──────────┬───────────────┘                              
-│                                              ▼                                              
+│           │                           │
+│           │ Errors                    │
+│           ▼                          ▼
+│  ┌─────────────────┐    ┌─────────────────────────────────┐    ┌───────────────────────┐  │
+│  │    SQS DLQ      │    │    CLOUDWATCH METRICS           │    │                       │  │
+│  │                 │    │                                 │    │                       │  │
+│  │ - KMS encrypted │    │ - Lambda error alarms (SNS)       │    │                       │  │
+│  │ - Failure capture│    │ - DLQ depth alarm               │    │                       │  │
+│  └─────────────────┘    └─────────────────────────────────┘    └───────────────────────┘  │
+│                                   │
+│                                   └──────────┬───────────────┐
+│                                              ▼
 │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
 │  │    SNS ALERTS TOPIC                                                                    │  │
 │  │                                                                                       │  │
 │  │    - Email subscription for notifications                                               │  │
 │  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                            │
+│
 │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐  │
 │  │   S3 REPLICA BUCKET                                                                    │  │
 │  │   (Cross-Region Replication Destination)                                                │  │
-│  │   ├── Versioning enabled                                                               │  │
+│  │   ├── Versioning enabled                                                                │  │
 │  │   └── Lifecycle: 365d expiration                                                     │  │
 │  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│           ▲                                                                                 
-│           │ Replication                                                                           
-│           └────────────────────────────────────────────────────────────────────────────┘      
-└────────────────────────────────────────────────────────────────────────────────────────────────┘      
+│           ▲
+│           │ Replication
+│           └────────────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 📦 Project Structure
