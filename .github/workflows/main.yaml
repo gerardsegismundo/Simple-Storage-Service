@@ -129,15 +129,12 @@ jobs:
       - run: cd terraform && terraform apply -auto-approve
 
       - run: |
-          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
-          aws s3 cp index.html "s3://$BUCKET/"
-          aws s3 cp error.html "s3://$BUCKET/" --quiet || true
-
-      - name: Output website URL
+          aws s3 cp index.html "s3://$BUCKET/" --cache-control max-age=3600
+          aws s3 cp error.html "s3://$BUCKET/" --cache-control max-age=3600 || true
+      - name: Invalidate CloudFront cache
         run: |
-          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
-          echo "🌐 https://${BUCKET}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
-      
+          DISTRIBUTION_ID=$(cd terraform && terraform output -raw cloudfront_distribution_id)
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
 
 
 # ============================================================
@@ -169,6 +166,16 @@ jobs:
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
 
+      - run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          aws s3 cp index.html "s3://$BUCKET/" --cache-control max-age=3600
+          aws s3 cp error.html "s3://$BUCKET/" --cache-control max-age=3600 || true
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DISTRIBUTION_ID=$(cd terraform && terraform output -raw cloudfront_distribution_id)
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+
 
 # ============================================================
 # DEPLOY PROD (STEP AFTER STAGING)
@@ -198,3 +205,13 @@ jobs:
 
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
+
+      - run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
+          aws s3 cp index.html "s3://$BUCKET/" --cache-control max-age=3600
+          aws s3 cp error.html "s3://$BUCKET/" --cache-control max-age=3600 || true
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DISTRIBUTION_ID=$(cd terraform && terraform output -raw cloudfront_distribution_id)
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"

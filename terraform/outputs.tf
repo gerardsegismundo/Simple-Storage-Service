@@ -15,5 +15,5 @@ output "lambda_function" {
 }
 
 output "website_url" {
-  value = "${aws_s3_bucket.primary.bucket}.s3-website-${var.primary_region}.amazonaws.com"
+  value = "https://${aws_cloudfront_distribution.website.domain_name}"
 }

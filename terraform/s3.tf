@@ -33,7 +33,7 @@ resource "aws_s3_bucket_policy" "primary_website" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"
+      Principal = { AWS = aws_cloudfront_origin_access_identity.oai.iam_arn }
       Action    = "s3:GetObject"
       Resource  = "${aws_s3_bucket.primary.arn}/*"
     }]
@@ -65,7 +65,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "primary" {
 }
 
 # =========================
-# LIFECYCLE -- TRANSITION TO STANDARD_IA AND NONCURRENT VERSION EXPIRATION
+# LIFECYCLE 
 # =========================
 resource "aws_s3_bucket_lifecycle_configuration" "primary" {
   bucket = aws_s3_bucket.primary.id
@@ -99,4 +99,48 @@ resource "aws_s3_bucket_public_access_block" "primary" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_cloudfront_origin_access_identity" "oai" {
+  comment = "OAI for ${var.project_name} static website"
+}
+
+resource "aws_cloudfront_distribution" "website" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+
+  origin {
+    domain_name = aws_s3_bucket.primary.bucket_regional_domain_name
+    origin_id   = "S3-${aws_s3_bucket.primary.id}"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.oai.cloudfront_access_identity_path
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-${aws_s3_bucket.primary.id}"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
 }
