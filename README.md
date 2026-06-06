@@ -20,24 +20,25 @@ A production-ready AWS infrastructure for static website hosting with automated 
 - **Security First**: Encryption at rest, public access blocking, dead-letter queues
 - **Observability**: CloudWatch alarms with SNS alerting for failures
 
-## 🏗️ Architecture
+## 🏗️ ArchitectureHere 
+```
 
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                       GITHUB REPOSITORY                                        │
 │                                    (Simple-Storage-Service)                                    │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
-                                                │
-                                                ▼
+│
+▼
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                    GITHUB ACTIONS WORKFLOW                                     │
 │                                                                                                │
 │    ┌─────────┐    ┌─────────┐    ┌───────────┐    ┌─────────┐    ┌──────────┐                  │
-│    │  BUILD  │──▶│  TEST   │───▶│ VALIDATE  │──▶│ SECURITY│───▶│  DEPLOY  │                  │
+│    │  BUILD  │───▶│  TEST   │───▶│ VALIDATE  │───▶│SECURITY │───▶│  DEPLOY  │                  │
 │    │  (fmt)  │    │(pytest) │    │(terraform)│    │(Checkov)│    │   (TF)   │                  │
 │    └─────────┘    └─────────┘    └───────────┘    └─────────┘    └──────────┘                  │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
-                                                                        │
-                                                                        ▼
+│
+▼
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                         AWS US-EAST-1                                          │
 │                                                                                                │
@@ -47,7 +48,7 @@ A production-ready AWS infrastructure for static website hosting with automated 
 │  │   ├── Static website hosting (index.html, error.html)                                    │  │
 │  │   ├── Versioning enabled                                                                 │  │
 │  │   ├── AES256 encryption at rest                                                          │  │
-│  │   ├── Lifecycle: 30d → STANDARD_IA, 365d version cleanup                                 │  │
+│  │   ├── Lifecycle: 30d → STANDARD_IA, 365d version cleanup                                  │  │
 │  │   └── Public access blocked (OAI-only)                                                   │  │
 │  └──────────────────────────────────────────────────────────────────────────────────────────┘  │
 │            │                             │                             │                       │
@@ -90,6 +91,8 @@ A production-ready AWS infrastructure for static website hosting with automated 
 │            │ Replication                                                                       │
 │            └───────────────────────────────────────────────────────────────────────────────────┘
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+```
 
 ## 📦 Project Structure
 
