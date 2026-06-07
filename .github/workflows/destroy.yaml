@@ -3,15 +3,6 @@ name: Terraform Destroy
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to destroy (dev/staging/prod)'
-        required: true
-        type: choice
-        options:
-          - dev
-          - staging
-          - prod
-        default: 'dev'
       confirm:
         description: 'Type "destroy" to confirm'
         required: true
@@ -44,4 +35,4 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - run: cd terraform && terraform init
-      - run: cd terraform && terraform destroy -auto-approve -var="environment=${{ github.event.inputs.environment }}"
+      - run: cd terraform && terraform destroy -auto-approve
