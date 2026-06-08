@@ -22,6 +22,20 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy" "lambda_dlq" {
+  name = "lambda-dlq-send"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sqs:SendMessage"
+      Resource = aws_sqs_queue.dlq.arn
+    }]
+  })
+}
+
 resource "aws_lambda_function" "processor" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "${var.project_name}-processor"
