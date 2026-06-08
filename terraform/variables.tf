@@ -17,3 +17,9 @@ variable "repo_name" {
   type    = string
   default = "Simple-Storage-Service"
 }
+
+variable "alert_email" {
+  type        = string
+  description = "Email for SNS alert notifications"
+  default     = "gerard.segismundo@techconsulting.tech"
+}

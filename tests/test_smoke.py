@@ -1,6 +1,5 @@
 import json
 import os
-import pytest
 from pathlib import Path
 
 
@@ -26,11 +25,10 @@ class TestTerraformConfiguration:
             assert len(content) > 0, "main.tf should not be empty"
 
     def test_terraform_has_s3_bucket(self):
-        terraform_files = Path("terraform").glob("*.tf")
+        terraform_files = list(Path("terraform").glob("*.tf"))
+        assert terraform_files, "No Terraform files found"
 
-        content = ""
-        for file in terraform_files:
-            content += file.read_text()
+        content = "\n".join(f.read_text() for f in terraform_files)
 
         assert "aws_s3_bucket" in content, \
             "Should define S3 bucket"
@@ -40,18 +38,14 @@ class TestTerraformConfiguration:
 
      
 
-    """  def test_terraform_has_lambda(self):
-        terraform_files = Path("terraform").glob("*.tf")
+    def test_terraform_has_lambda(self):
+        terraform_files = list(Path("terraform").glob("*.tf"))
+        assert terraform_files, "No Terraform files found"
 
-        content = ""
-        for file in terraform_files:
-            content += file.read_text()
+        content = "\n".join(f.read_text() for f in terraform_files)
 
-        assert "aws_lambda_function" in content, \
-            "Should have Lambda function"
-
-        assert "aws_iam_role" in content, \
-            "Should have IAM role" """
+        assert "aws_lambda_function" in content, "Should have Lambda function"
+        assert "aws_iam_role" in content, "Should have IAM role"
 
 
 class TestGitHubWorkflow:
@@ -75,14 +69,18 @@ class TestIndexHTML:
         assert "<html" in content.lower() or "<!DOCTYPE" in content, "Should have HTML structure"
 
 
-""" class TestLambdaHandler:
+class TestLambdaHandler:
     def test_lambda_handler_exists(self):
         assert os.path.isfile("lambda/s3_event_processor.py"), "Lambda handler should exist"
 
     def test_lambda_handler_valid_python(self):
-        content = Path("lambda/s3_event_processor.py").read_text()
+        path = Path("lambda/s3_event_processor.py")
+        assert path.exists(), "Lambda handler should exist"
+
+        content = path.read_text()
         assert "lambda_handler" in content, "Should have lambda_handler function"
-        compile(content, "s3_event_processor.py", "exec") """
+
+        compile(content, str(path), "exec")
 
 
 class TestSmokePipeline:
