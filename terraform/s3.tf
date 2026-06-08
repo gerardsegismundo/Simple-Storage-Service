@@ -1,6 +1,6 @@
 
 locals {
-  suffix = formatdate("YYYYMMDDhhmmss", timestamp())
+  suffix = "20260608162721"
 }
 
 # =========================
