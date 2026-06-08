@@ -128,10 +128,16 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - run: |
+          BUCKET="s3-platform-tf-state-main"
+          aws s3 mb s3://$BUCKET --region ${{ env.AWS_REGION }} || echo "Bucket may already exist"
+          aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
+
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
 
       - run: |
+          BUCKET=$(cd terraform && terraform output -raw primary_bucket)
           aws s3 cp index.html "s3://$BUCKET/" --cache-control max-age=3600
           aws s3 cp error.html "s3://$BUCKET/" --cache-control max-age=3600 || true
       - name: Invalidate CloudFront cache
@@ -165,6 +171,11 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - run: |
+          BUCKET="s3-platform-tf-state-main"
+          aws s3 mb s3://$BUCKET --region ${{ env.AWS_REGION }} || echo "Bucket may already exist"
+          aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
 
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
@@ -205,6 +216,11 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - run: |
+          BUCKET="s3-platform-tf-state-main"
+          aws s3 mb s3://$BUCKET --region ${{ env.AWS_REGION }} || echo "Bucket may already exist"
+          aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
 
       - run: cd terraform && terraform init
       - run: cd terraform && terraform apply -auto-approve
