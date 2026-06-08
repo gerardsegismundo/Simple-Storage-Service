@@ -132,6 +132,8 @@ jobs:
           aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
 
       - run: cd terraform && terraform init
+
+      - run: bash scripts/pre-apply.sh
       - run: cd terraform && terraform apply -auto-approve
 
       - run: |
@@ -176,6 +178,7 @@ jobs:
           aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
 
       - run: cd terraform && terraform init
+      - run: bash scripts/pre-apply.sh
       - run: cd terraform && terraform apply -auto-approve
 
       - run: |
@@ -221,6 +224,7 @@ jobs:
           aws s3api put-bucket-versioning --bucket $BUCKET --versioning-configuration Status=Enabled || true
 
       - run: cd terraform && terraform init
+      - run: bash scripts/pre-apply.sh
       - run: cd terraform && terraform apply -auto-approve
 
       - run: |
