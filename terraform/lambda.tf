@@ -28,11 +28,28 @@ resource "aws_iam_role_policy" "lambda_dlq" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "sqs:SendMessage"
-      Resource = aws_sqs_queue.dlq.arn
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.dlq.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "sqs:ReceiveMessage"
+        Resource = aws_sqs_queue.dlq.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "sqs:DeleteMessage"
+        Resource = aws_sqs_queue.dlq.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "sqs:GetQueueAttributes"
+        Resource = aws_sqs_queue.dlq.arn
+      }
+    ]
   })
 }
 
