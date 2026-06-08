@@ -6,7 +6,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
   security-events: write
 
 env:
@@ -78,7 +78,7 @@ jobs:
     needs: validate
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -94,10 +94,8 @@ jobs:
       # Secret scanning (Gitleaks)
       # --------------------------------------------
       - name: Run Gitleaks (Secret Detection)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
-          GITLEAKS_CONFIG: .gitleaks.toml
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 

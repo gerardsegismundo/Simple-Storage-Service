@@ -15,6 +15,7 @@ terraform/lambda.zip
 
 # Script artefacts (keep scripts in git, ignore generated output)
 *.log
+results.sarif
 
 # Editor files
 *.swp
