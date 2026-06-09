@@ -18,7 +18,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_errors" {
   statistic           = "Sum"
   threshold           = "1"
   alarm_description   = "DLQ has messages - Lambda processing failures detected"
-  alarm_actions       = [] # Add SNS topic ARN if you have one
+  alarm_actions       = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     QueueName = aws_sqs_queue.dlq.name
