@@ -14,6 +14,8 @@ A production-ready AWS infrastructure for static website hosting with automated 
 ## Cloudwatch Dashboard
 <img width="949" height="398" alt="image" src="https://github.com/user-attachments/assets/478744db-06bf-4667-ba31-a83e537fa12b" />
 
+# Static Website
+![alt text](image.png)
 
 ## ✨ Highlights
 
