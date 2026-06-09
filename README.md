@@ -11,6 +11,10 @@ A production-ready AWS infrastructure for static website hosting with automated 
 ## Deploy_prod
 <img width="686" height="221" alt="image" src="https://github.com/user-attachments/assets/dc44d04b-4fe0-4b82-8ed2-f6f853922561" />
 
+## Cloudwatch Dashboard
+<img width="949" height="398" alt="image" src="https://github.com/user-attachments/assets/478744db-06bf-4667-ba31-a83e537fa12b" />
+
+
 ## ✨ Highlights
 
 - **Automated CI/CD**: Multi-environment deployments with GitHub Actions
