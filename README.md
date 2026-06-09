@@ -14,6 +14,8 @@ A production-ready AWS infrastructure for static website hosting with automated 
 ## Cloudwatch Dashboard
 <img width="949" height="398" alt="image" src="https://github.com/user-attachments/assets/478744db-06bf-4667-ba31-a83e537fa12b" />
 
+# Static Website
+![alt text](image.png)
 
 ## ✨ Highlights
 
@@ -21,10 +23,12 @@ A production-ready AWS infrastructure for static website hosting with automated 
 - **Static Website**: S3 + CloudFront for fast, secure content delivery
 - **Event-Driven Processing**: Lambda triggers on S3 object uploads
 - **Multi-Region Replication**: Automatic bucket replication for disaster recovery
+- **CloudWatch Dashboard**: Real-time monitoring of S3, CloudFront, Lambda, and DLQ metrics
 - **Security First**: Encryption at rest, public access blocking, dead-letter queues
 - **Observability**: CloudWatch alarms with SNS alerting for failures
+- **Secret Scanning**: Gitleaks + SARIF reporting via GitHub Actions
 
-## 🏗️ ArchitectureHere 
+## 🏗️ Architecture 
 ```
 
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -36,6 +40,10 @@ A production-ready AWS infrastructure for static website hosting with automated 
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                    GITHUB ACTIONS WORKFLOW                                     │
 │                                                                                                │
+│    ┌─────────┐    ┌─────────┐    ┌───────────┐    ┌──────────┐    ┌─────────┐    ┌──────────┐                  │
+│    │  BUILD  │───▶│  TEST   │───▶│ VALIDATE  │───▶│SECURITY │───▶│ SECRET  │───▶│  DEPLOY  │                  │
+│    │  (fmt)  │    │(pytest) │    │(terraform)│    │(Checkov)│    │(Gitleaks)│    │   (TF)   │                  │
+│    └─────────┘    └─────────┘    └───────────┘    └──────────┘    └─────────┘    └──────────┘                  │
 │    ┌─────────┐    ┌─────────┐    ┌───────────┐    ┌─────────┐    ┌──────────┐                  │
 │    │  BUILD  │──▶│  TEST   │───▶│ VALIDATE  │──▶│SECURITY │───▶│  DEPLOY  │                  │
 │    │  (fmt)  │    │(pytest) │    │(terraform)│    │(Checkov)│    │   (TF)   │                  │
@@ -107,6 +115,7 @@ simple-storage-service/
 │   ├── s3.tf                # Primary/replica buckets, CloudFront, OAI
 │   ├── lambda.tf            # Lambda function, IAM role, SNS alerts
 │   ├── dlq.tf               # Dead-letter queue for Lambda failures
+│   ├── dashboard.tf         # CloudWatch dashboard for observability
 │   ├── replication.tf       # Cross-region replication config
 │   ├── github.tf            # GitHub environment setup
 │   ├── outputs.tf           # Terraform outputs
@@ -150,6 +159,8 @@ pytest tests/ -v
 - **Dead-Letter Queue**: Failed Lambda invocations routed to SQS
 - **Security Scanning**: Checkov + Gitleaks in CI pipeline
 - **Branch Protection**: GitHub environments with required reviewers
+- **Secret Scanning**: Gitleaks detects leaked secrets in CI
+- **SARIF Reporting**: Security findings uploaded to GitHub Security tab
 
 ## 📋 Terraform Outputs
 
@@ -158,6 +169,7 @@ pytest tests/ -v
 - `lambda_function`: S3 event processor function name
 - `website_url`: CloudFront HTTPS endpoint
 - `cloudfront_distribution_id`: CloudFront distribution ID (for cache invalidation)
+- `monitoring_dashboard`: CloudWatch dashboard URL for observability
 
 ## 🌐 Environment Deployments
 
