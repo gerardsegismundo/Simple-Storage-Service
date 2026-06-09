@@ -3,13 +3,13 @@
 A production-ready AWS infrastructure for static website hosting with automated CI/CD, S3 object processing, and multi-region replication.
 
 ## Deploy_dev
-<img width="687" height="230" alt="image" src="https://github.com/user-attachments/assets/cdf3488e-ca6b-49e8-bbb4-650f370e243a" />
+<img width="696" height="233" alt="image" src="https://github.com/user-attachments/assets/628fa38c-b590-482b-9273-713e4202c5fe" />
 
 ## Deploy_staging
-<img width="688" height="232" alt="image" src="https://github.com/user-attachments/assets/8d7d6793-ac6a-4e34-a00b-ff404e62a158" />
+<img width="687" height="225" alt="image" src="https://github.com/user-attachments/assets/235135d4-c1ae-494f-bb47-79606395b4d3" />
 
 ## Deploy_prod
-<img width="689" height="227" alt="image" src="https://github.com/user-attachments/assets/bedd501b-5859-4606-975d-03522d7ae06c" />
+<img width="686" height="221" alt="image" src="https://github.com/user-attachments/assets/dc44d04b-4fe0-4b82-8ed2-f6f853922561" />
 
 ## ✨ Highlights
 
